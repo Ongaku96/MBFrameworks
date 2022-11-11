@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../OBI/OBIWebFramework2"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "MBFrameworks"
+	}
+}

@@ -1,4 +1,5 @@
-import { SpiceRack } from "./spice";
+import { SpiceRack } from "./spice.js";
+import { staterecipe } from "./enumerators.js";
 
 export function createTemplate(templateText) {
   const dom = createDOM(templateText);
@@ -19,11 +20,17 @@ export class BaseRecipe extends SpiceRack {
   constructor(id) {
     super();
 
-    this.state = staterecipe.default;
+    this.methods = {
+      
+    };
+
+    this.state = staterecipe.mise; //state of elaboration
     this.action = null; //server call
     this.data = []; //component data from wich the html is build
     this.id = id; //univoque reference of component in app environement
     this.reference = null; //reference to the html element
+
+    this.template = null; //the html template
   }
 
   //JSON CONVERTER
@@ -37,7 +44,7 @@ export class BaseRecipe extends SpiceRack {
     }
   }
   /**parse json string in current item */
-  static parse(json) {
+  static read(json) {
     try {
       let _data = JSON.parse(json);
       return Object.setPrototypeOf(_data, this.prototype);
@@ -51,8 +58,8 @@ export class BaseRecipe extends SpiceRack {
     sessionStorage.setItem(this.id, this.json);
   }
   /**read item from session storage */
-  static read() {
-    if (!sessionStorage.key.find(this.id)) save();
+  static fetch() {
+    if (!sessionStorage.key.find(this.id)) store();
     return this.parse(sessionStorage.getItem(this.id));
   }
 

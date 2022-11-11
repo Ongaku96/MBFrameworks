@@ -1,24 +1,33 @@
-import { spicetype } from "./enumerators";
+import { spicetype } from "./enumerators.js";
 /**Management of spice collection*/
 export class SpiceRack {
     #_spices = [];
     constructor() { }
-
+    /**Store the event into the component, it will add the event event the name already exists*/
     addSpice(spice) {
         this.#_spices.push(spice);
     }
+    /**Store the event into the component but it replace any with the same name */
     replaceSpice(spice) {
         this.#_spices = this.#_spices.filter((s) => s.name != spice.name);
         this.addSpice(spice);
     }
-    useSpice(name, ...args) {
-        if (this.containsSpice(name)) {
+    /**Remove the specified named events */
+    removeSpices(...names) {
+        for (let n in names) {
+            this.#_spices = this.#_spices.filter(s => s.name != names[n]);
+        }
+    }
+    /**Trigger the named event */
+    spiceup(name, ...args) {
+        if (this.itContainsSpice(name)) {
             this.#_spices.find((s) => s.name == name).use(args);
         } else {
             snack.eat("there is no spice named " + this.name, snacktype.warning);
         }
     }
-    containsSpice(name) {
+    /**Check if the component contains that event */
+    itContainsSpice(name) {
         return this.#_spices.find((s) => s.name == name) != null;
     }
 }
@@ -29,7 +38,7 @@ export class Spice {
         this.type = type;
         this.ingredients = ingredients;
     }
-
+    /**Execute the action */
     use(...args) {
         switch (this.type) {
             case spicetype.link:
@@ -78,8 +87,8 @@ export class Spice {
                 break;
         }
     }
-
-    static parse(json) {
+    /**Get Spice object from json */
+    static fetch(json) {
         let _data = JSON.parse(json);
         return _data ? new Spice(_data.name, data.type, data.ingredients) : null;
     }

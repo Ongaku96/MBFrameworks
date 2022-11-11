@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="../bundle.css" />
+</head>
+
+<body>
+    <div id="myapp">
+        <button sv-click="test()">Prova Alert</button>
+    </div>
+    <script name="app_config" type="module">
+        import * as sv from "../salsaverde.js"
+
+        window.app = sv.start("myapp");
+
+    </script>
+    <script type="text/javascript">
+
+
+        function test() {
+            svglobal.app("myapp").claim("test invio messaggio.", svglobal.enum.snacktype.success);
+        }
+
+    </script>
+</body>
+
+</html>
