@@ -1,5 +1,5 @@
 /**Execute a javascript function by name */
-function runFunctionByName(name, ...args) {
+export function runFunctionByName(name, ...args) {
     return window[name](args);
 }
 
@@ -8,7 +8,7 @@ const arrayConstructor = [].constructor;
 const objectConstructor = {}.constructor;
 const xhrConstructor = new XMLHttpRequest().constructor;
 /**Return the current data type of item*/
-function getDataType(object) {
+export function getDataType(object) {
   if (object === null || object === undefined) return datatypes.empty;
   if (object instanceof Date) return datatypes.date;
   if (object.constructor === stringConstructor) return datatypes.string;

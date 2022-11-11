@@ -1,4 +1,4 @@
-import { createTemplate } from "../script/template.js";
+import { createTemplate, BaseRecipe } from "../modules/template.js";
 
 const snack_template = createTemplate(
   "<style>" +
@@ -19,38 +19,39 @@ const snack_template = createTemplate(
       "background-color: red;" +
     "}" +
     "</style>" +
-    "<div class='snackbar'>TEST TEMPLATE</div>"
+    "<div class='snackbar'>{{message}}</div>"
 );
 
-class SnackHTMLElement extends HTMLElement {
-  constructor(message, type) {
+export class SnackHTMLElement extends HTMLElement {
+  constructor() {
     super();
     const templateContent = snack_template.content;
     const shadowRoot = this.attachShadow({ mode: "closed" });
     shadowRoot.appendChild(templateContent.cloneNode(true));
   }
+
+  cook(message, type, ...spices){
+    let _page = document.getElementsByTagName("body").innerHtml(this.component);
+    let _clone = this.component.content.cloneNode(true);
+    _clone.innerHtml = _clone.innerHtml.replace("{{message}}", message);
+    _page.appendChild(_clone);
+  }
 }
 
-/**enumerator of on-screen message types */
-snacktype = {
-  success: 0,
-  warning: 1,
-  danger: 2,
-  server: 3,
-};
 /**Snacks allow on-screen messages to appear.
  * It needs to be build a text message, the type given by 'snacktype' enumerator and optionally a list of actions to perform as buttons */
-class Snack extends BaseRecipe {
+export class Snack extends BaseRecipe {
   constructor() {
     super();
     this.message;
     this.type;
     this.spices;
 
-    this.component = new SnackHTMLElement(this.message, this.type);
+    this.component = new SnackHTMLElement();
   }
 
   static eat(message, type, ...spices) {
-    alert(message);
+    let _snack = new Snack();
+    _snack.component.cook(message, type, spices);
   }
 }

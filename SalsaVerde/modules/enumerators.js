@@ -1,5 +1,5 @@
 /**Enumerator that reference the most common var data types */
-const datatypes = {
+export const datatypes = {
   empty: 1,
   string: 2,
   array: 3,
@@ -9,7 +9,7 @@ const datatypes = {
   date: 7,
 };
 /**List of useful regex */
-const regex = {
+export const regex = {
   numeric: /^(([0-9]*)|(([0-9]*)[\.\,]([0-9]*)))$/,
   textual: /\d/,
   mail: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
@@ -20,7 +20,7 @@ const regex = {
     /([0][1-9]|[1][0-9]|[2][0-9]|[3][0-1])[/|.|-|,|;]([0][1-9]|[1][0-2])[/|.|-|,|;](([1][9][0-9]{2}|[2][0-9]{3})|(\d{2}))/,
 };
 /**Enumerator for the file size formatter */
-const filesize = [
+export const filesize = [
     {
         name: "Bytes",
         size: 8
@@ -38,3 +38,27 @@ const filesize = [
         size: 8e+9
     }
 ];
+export const spicetype = {
+  link: 0,
+  script: 1,
+  server: 2,
+  email: 3,
+};
+/**enumerator of on-screen message types */
+export const snacktype = {
+  success: 0,
+  warning: 1,
+  danger: 2,
+  server: 3,
+};
+export const actionrecipe = {
+  order: "order", //server call to load data
+  cook: "cook", //render component on html page
+  refuel: "refuel", //refresh partial item with some updated data
+  abort: "abort", //abort all server call
+};
+export const staterecipe = {
+  default: 0,
+  loading: 1,
+};
+

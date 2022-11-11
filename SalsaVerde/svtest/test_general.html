@@ -5,12 +5,14 @@
     </head>
     <body>
         <div id="myapp">
-            <div id="label_test"></div>
+            <a onclick="test_alert();">Prova Alert</a>
         </div>
-        <script>
-            var _app = new Sandwich();
-            _app.addSpice();
+        <script type="module">
+            import * as sv from "../bundle.js";
+            
+            function test_alert(){
+                sv.Snack.eat("test custom alert", sv.snacktype.success);
+            }
         </script>
-        <script src="../bundle.js"></script>
     </body>
 </html>
