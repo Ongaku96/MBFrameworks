@@ -47,7 +47,7 @@ export class BaseRecipe extends SpiceRack {
   }
   //SESSION MANAGEMENT
   /**Save current item in session storage */
-  save() {
+  store() {
     sessionStorage.setItem(this.id, this.json);
   }
   /**read item from session storage */

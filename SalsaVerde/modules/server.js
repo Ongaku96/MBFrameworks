@@ -1,7 +1,7 @@
 import { SpiceRack } from "./spice";
 
 /**Server connection management */
-export class Server extends SpiceRack {
+export default class Server extends SpiceRack {
     #_state;
     #_error;
     #_result;
