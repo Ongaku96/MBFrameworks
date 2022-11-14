@@ -4,6 +4,7 @@ import * as __enum from "./modules/enumerators.js";
 var pos = [];
 
 window.svglobal = {
+    /**get the app */
     app: (id) => { return getSandwich(id); },
     save: () => { sessionStorage.setItem("svstore", JSON.stringify(pos)); },
     update: () => {
@@ -26,15 +27,21 @@ window.svglobal = {
         staterecipe: __enum.staterecipe
     }
 }
-
-function getSandwich(id) {
-    svglobal.update();
-    return pos.find(a => a.name == id);
 }
 
-export function start(id, options = {}) {
-    let _app = new app.Sandwich(id, options);
-    if (getSandwich(id) == null) pos.push(_app);
-    _app.cook();
+/**Get the app with specified name or create t if it doesn't exists */
+function getApp(name) {
+    let _app = svglobal.pos.find(a => a.name == name);
+    if(_app){
+        return _app;
+    }else{
+        _app = serve(name);
+        svglobal.pos.push(_app);
+    }
+    return _app;
+}
+/**Creates a new app or returns it if it already exists*/
+function serve(name) {
+    let _app = new __app(name);
     return _app;
 };
