@@ -7,19 +7,29 @@
 
 <body>
     <div id="myapp">
-        <button sv-click="test()">Prova Alert</button>
+        <h1>{{ title }}</h1>
+        <button sv-click="setAlert('messaggio da evento')">{{ tasto }}</button>
+        <button sv-click="changeTitle()">switch title</button>
     </div>
-    <script name="app_config" type="module">
-        import * as sv from "../salsaverde.js"
+    <script src="../salsaverde.global.js"></script>
+    <script name="app_test" type="text/javascript">
 
-        window.app = sv.start("myapp");
+        openKiosk("myapp").then((app) => app.cook({
+            data: {
+                title: "Applicazione di prova",
+                tasto: "testo del tasto"
+            }
+        }));
 
-    </script>
-    <script type="text/javascript">
-
-
-        function test() {
-            svglobal.app("myapp").claim("test invio messaggio.", svglobal.enum.snacktype.success);
+        function setAlert(messaggio){
+            svglobal.claim(messaggio);
+        }
+        function changeTitle(){
+            let _app = svglobal.kiosk("myapp");
+            switch(_app.dataset.title){
+                case "Cambio titolo!" : _app.dataset.title = "Applicazione di prova"; break;
+                case "Applicazione di prova" : _app.dataset.title = "Cambio titolo!"; break;
+            }
         }
 
     </script>

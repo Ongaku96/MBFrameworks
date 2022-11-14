@@ -1,5 +1,6 @@
 import { SpiceRack } from "./spice.js";
 import { staterecipe } from "./enumerators.js";
+import { errortype, stampError } from "./errors.js";
 
 export function createTemplate(templateText) {
   const dom = createDOM(templateText);
@@ -17,7 +18,7 @@ export class BaseRecipe extends SpiceRack {
     return this.#_error_timer;
   }
 
-  constructor(id) {
+  constructor(name) {
     super();
 
     this.methods = {
@@ -27,7 +28,7 @@ export class BaseRecipe extends SpiceRack {
     this.state = staterecipe.mise; //state of elaboration
     this.action = null; //server call
     this.data = []; //component data from wich the html is build
-    this.id = id; //univoque reference of component in app environement
+    this.name = name; //univoque reference of component in app environement
     this.reference = null; //reference to the html element
 
     this.template = null; //the html template
@@ -55,12 +56,12 @@ export class BaseRecipe extends SpiceRack {
   //SESSION MANAGEMENT
   /**Save current item in session storage */
   store() {
-    sessionStorage.setItem(this.id, this.json);
+    sessionStorage.setItem(this.name, this.json);
   }
   /**read item from session storage */
   static fetch() {
-    if (!sessionStorage.key.find(this.id)) store();
-    return this.parse(sessionStorage.getItem(this.id));
+    if (!sessionStorage.key.find(this.name)) store();
+    return this.parse(sessionStorage.getItem(this.name));
   }
 
   //INTERFACE
@@ -72,10 +73,11 @@ export class BaseRecipe extends SpiceRack {
       this._error_timer = setTimeout(function () {
         _me.abort();
         _me.stopCooking();
-        Snack.eat(
+        Snack.apply(
           "Communication error with the server, too much time has passed without any response.",
           snacktype.server
         );
+        console.error(stampError(errortype.requesttimeout, "SVE3").format(this.name));
       }, timer);
     }
   }

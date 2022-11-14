@@ -51,14 +51,16 @@ export const spicetype = {
 };
 /**enumerator of on-screen message types */
 export const snacktype = {
-  /**a message of success */
-  success: 0,
-  /**a message that notificate that something gone wrong but it don't block the process */
-  warning: 1,
-  /**a message that indicate that a process failed */
-  danger: 2,
-  /**a message that indicate a server internal error */
-  server: 3,
+  /**default message */
+  default: 0,
+  /**message of success */
+  success: 1,
+  /**notificate that something gone wrong but it don't block the process */
+  warning: 2,
+  /**indicate that a process failed */
+  danger: 3,
+  /**indicate a server internal error */
+  server: 4,
 };
 /**List of supported events in components */
 export const eventrecipe = {

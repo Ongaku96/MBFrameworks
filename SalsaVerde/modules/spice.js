@@ -1,4 +1,7 @@
-import { spicetype } from "./enumerators.js";
+import { snacktype, spicetype } from "./enumerators.js";
+import { errortype, stampError } from "./errors.js";
+import __snack from "./snack.js";
+import __server from "./server.js";
 /**Management of spice collection*/
 export class SpiceRack {
     #_spices = [];
@@ -42,16 +45,22 @@ export class Spice {
     use(...args) {
         switch (this.type) {
             case spicetype.link:
-                if (args && args.length > 0)
-                    this.ingredients = this.ingredients.format(args);
-                window.open(this.ingredients, "_blank");
+                try {
+                    if (args && args.length > 0)
+                        this.ingredients = this.ingredients.format(args);
+                    window.open(this.ingredients, "_blank");
+                } catch (ex) {
+                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
+                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
+                }
                 break;
             case spicetype.script:
                 try {
                     if (this.ingredients.args) args.push(this.ingredients.args);
-                    window[this.ingredients.name](args);
+                    runFunctionByName(this.ingredients.name.format(args));
                 } catch (ex) {
-                    Snack.eat(e, Snack.type.warning);
+                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
+                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
                 }
                 break;
             case spicetype.server:
@@ -59,37 +68,49 @@ export class Spice {
                     if (args && args.length > 0) {
                         switch (args.length) {
                             case 1:
-                                Connection.script(args[0]);
+                                __server.script(args[0]);
                                 break;
                             case 2:
-                                Connection.script(args[0], args[1]);
+                                __server.script(args[0], args[1]);
                                 break;
                             case 3:
-                                Connection.script(args[0], args[1], function (result) {
+                                __server.script(args[0], args[1], function (result) {
                                     args[2](result);
                                 });
                                 break;
                         }
                     }
-                } catch (e) {
-                    snack.eat(e, snacktype.server);
+                } catch (ex) {
+                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
+                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
                 }
                 break;
             case spicetype.email:
-                let _to = this.ingredients.to;
-                let _cc = this.ingredients.cc ? "?cc=" + this.ingredients.cc : "";
-                let subject = this.ingredients.subject
-                    ? "&subject=" + this.ingredients.subject
-                    : "";
-                if (args && args.length > 0) subject = subject.format(args);
-                window.open("mailto:" + _to + _cc + subject, "_blank");
+                try {
+                    let _to = this.ingredients.to;
+                    let _cc = this.ingredients.cc ? "?cc=" + this.ingredients.cc : "";
+                    let subject = this.ingredients.subject
+                        ? "&subject=" + this.ingredients.subject
+                        : "";
+                    if (args && args.length > 0) subject = subject.format(args);
+                    window.open("mailto:" + _to + _cc + subject, "_blank");
+                } catch (ex) {
+                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
+                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
+                }
+                break;
             default:
                 break;
         }
     }
     /**Get Spice object from json */
     static fetch(json) {
-        let _data = JSON.parse(json);
-        return _data ? new Spice(_data.name, data.type, data.ingredients) : null;
+        try {
+            let _data = JSON.parse(json);
+            return _data ? new Spice(_data.name, data.type, data.ingredients) : null;
+        } catch (ex) {
+            __snack.apply("Impossible to convert the data", snacktype.error);
+            console.error(stampError(errortype.notacceptable, "SVE5").format(ex));
+        }
     }
 }
