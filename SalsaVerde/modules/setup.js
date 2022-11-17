@@ -2,7 +2,17 @@ import __server from './server.js';
 import __snack from "./snack.js";
 import * as __error from "./errors.js";
 
-const clickid = "sv-click";
+const eventmapper = new Map();
+eventmapper.set(svenum.triggers.click, "click");
+eventmapper.set(svenum.triggers.change, "change");
+eventmapper.set(svenum.triggers.load, "load");
+eventmapper.set(svenum.triggers.submit, "submit");
+eventmapper.set(svenum.triggers.edit, "change textInput input keyup");
+
+const custommapper = new Map();
+custommapper.set(svenum.commands.for, "_for");
+custommapper.set(svenum.commands.on, "_on");
+custommapper.set(svenum.commands.name, "_name");
 
 /**Setup all the in tag references of the html */
 export function setTheTable(app, data) {
@@ -10,41 +20,79 @@ export function setTheTable(app, data) {
   setComponents(app.coockbook);
 }
 /**Refresh the element tag event */
-export function setTagEvent(event, item, attribute) {
-  let _script = item.getAttribute(attribute);
-  let _func = () => { runFunctionByName(_script); };
+export function addTagEventListener(item, event, script) {
+  let _func = () => { runFunctionByName(script); };
   item.removeEventListener(event, _func);
   item.addEventListener(event, _func);
 }
+/**render html data reference */
+export function renderHtmlReference(app, reference, value) {
+  let _app_ref = app.target;
+  if (value != null) {
+    switch (getDataType(value)) {
+      case svenum.datatypes.array: stampArray(); break;
+      case svenum.datatypes.object: break;
+      default: stampValue(); break;
+    }
+  }
+  function stampValue() {
+    let _nodes = _app_ref.querySelectorAll("[" + custommapper.get(svenum.commands.name) + "='" + reference.name + "']");
+    if (_nodes.length > 0) {
+      for (const node of _nodes) {
+        node.innerHTML = app.format(value);
+      }
+    } else {
+      let _html = reference.template.format(app.format(value));
+      _app_ref.innerHTML = _app_ref.innerHTML.replace(new RegExp(reference.tag), _html);
+    }
+  }
+  function stampArray() {
+    let _nodes = _app_ref.querySelectorAll("[" + custommapper.get(svenum.commands.name) + "='" + reference.name + "']");
+    for (const node of _nodes) {
+      node.innerHTML = "";
+      let _prefix = getPrefix(node.getAttribute(custommapper.get(svenum.commands.for)));
+      for (const item of value) {
+        let _html = reference.template;
+        for (const t of reference.tag) {
+          let _path = getPathFromTag(t, _prefix);
+          let _val = _path ==_prefix ? item : item[_path];
+          _html = _html.replace(new RegExp(t), app.format(_val));
+        }
+        node.innerHTML += _html;
+      }
+    }
+  }
+}
 /**Get all framework click tag into the app and set the events */
-function clickevent(target) {
+export function applyTagEvent(target) {
   if (target) {
-    setupOnSelector(target);
-    setupEventShorts(target);
+    setupOnSelector();
+    setupEventShorts();
   }
 
   function setupOnSelector() {
     for (const event of eventmapper) {
 
-      let _selector = eventmapper.keys[i];
-      let _event = eventmapper.get(_key);
-  
+      let _selector = event[0];
+      let _event = event[1];
+
       let _items = target.querySelectorAll("[" + _selector + "]");
       if (_items.length > 0) {
         for (let i = 0; i < _items.length; i++) {
-          setTagEvent(_event, _items[i].getAttribute(_selector));
+          addTagEventListener(_items[i], _event, _items[i].getAttribute(_selector));
         }
       }
     }
   }
-  function setupEventShorts(target) {
-    let _items = target.querySelectorAll("[" + on_attribute + "]");
+  function setupEventShorts() {
+    let _items = target.querySelectorAll("[" + custommapper.get(svenum.commands.on) + "]");
     if (_items.length > 0) {
       for (let i = 0; i < _items.length; i++) {
-        let _attribute = _items[i].getAttribute(on_attribute);
+        let _attribute = _items[i].getAttribute(custommapper.get(svenum.commands.on));
         if (_attribute) {
           let _split = _attribute.split(" -> ");
-          setTagEvent(_split[0], _split[1]);
+          addTagEventListener(_items[i], _split[0], _split[1]);
+        }
       }
     }
   }
@@ -54,65 +102,47 @@ function setHtmlReferences(app, data) {
   if (app && data) {
     var _keys = Object.keys(data);
     for (let d = 0; d < _keys.length; d++) {
+      let _type = getDataType(data[_keys[d]]);
       switch (_type) {
-        case datatypes.array:
-          let _refs = setupArray(_keys[d]);
-          for(const ref of _refs){
+        case svenum.datatypes.array:
+          for (const ref of setupArray(_keys[d])) {
             app.references.push(ref);
           }
           break;
-        case datatypes.object: break;
+        case svenum.datatypes.object: break;
         default:
-      let _name = app.name + "-" + _keys;
-          app.references.push({
-            key: _keys[d],
-            name: [_name],
-            template: "<div name='" + _name + "'>{0}</div>",
-            tag: ["{{ " + _keys[d] + " }}"]
+          app.references.push(setupValue(_keys[d]));
+          break;
       }
+    }
+  }
+  function setupValue(key) {
+    let _name = app.name + "-" + key;
+    return {
+      key: key,
+      name: _name,
+      template: "<span " + custommapper.get(svenum.commands.name) + "='" + _name + "'>{0}</span>",
+      tag: "{{ " + key + " }}"
+    }
   }
   function setupArray(key) {
-    let _elements = Array.from(document.querySelectorAll("[" + commapper[commands.for] + "]"));
-    let _iterations = _elements.filter(n => n.getAttribute(commapper[commands.for]).includes(key));
+    let _elements = Array.from(document.querySelectorAll("[" + custommapper.get(svenum.commands.for) + "]"));
+    let _iterations = _elements.filter(n => n.getAttribute(custommapper.get(svenum.commands.for)).includes(key));
     let _references = [];
     for (let i = 0; i < _iterations.length; i++) {
-      let _names = app.name + "-" + key + i.toString();
-      let _template = item;
-      let _tags = item.innerHTML.match(regex.reference);
+      let _name = app.name + "-" + key + i.toString();
+      let _template = _iterations[i].innerHTML;
+      let _tags = _template.match(svenum.regex.reference);
+      _iterations[i].setAttribute(custommapper.get(svenum.commands.name), _name);
 
+      _references.push({
+        key: key,
+        name: _name,
+        template: _template,
+        tag: _tags
+      });
     }
-  }
-}
-/**render html data reference on value change */
-function renderHtmlReferences(app, name, value) {
-  if (app && name) {
-    let _nodes = document.getElementsByName(name);
-    if (_nodes.length > 0) {
-      switch (getDataType(value, datatypes)) {
-        case datatypes.string: case datatypes.number: setupValues(); break;
-        case datatypes.array: setupArray(); break;
-        case datatypes.date: setupDate(); break;
-        case datatypes.object: break;
-      }
-    }
-  }
-  function setupValues() {
-    for (let n = 0; n < _nodes.length; n++) {
-      _nodes[n].innerHTML = value == null ? "" : value;
-    }
-  }
-  function setupDate() {
-    for (let n = 0; n < _nodes.length; n++) {
-      _nodes[n].innerHTML = value == null ? "" : value.toLocaleDateString();
-    }
-  }
-  function setupArray() {
-    for (let n = 0; n < value.length; n++) {
-      let _items = document.getElementsByName(name + "[" + n.toString() + "]");
-      for (const item of _items) {
-        item.innerHTML = value[n];
-      }
-    }
+    return _references;
   }
 }
 /**set the interface components */
@@ -128,10 +158,11 @@ function setComponents(cookbook) {
   }
 }
 
-function addReference(data, name, template, path) {
-  data.references.push({
-    name: name,
-    template: template,
-    datapath: path
-  });
+function getPathFromTag(tag, prefix) {
+  return tag.replace("{{ ", "").replace(" }}", "").replace(prefix + ".", "");
+}
+function getPrefix(attribute) {
+  let _split = attribute.split(" in ");
+  if (_split.length > 0) return _split[0];
+  return null;
 }

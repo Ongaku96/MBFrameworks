@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="../SalsaVerde/bundle.css" />
+</head>
+
+<body>
+    <div id="myapp">
+        <h1>{{ title }}</h1>
+        <p>{{ data }}</p>
+        <button _click="setAlert('messaggio da evento')">{{ tasto }}</button>
+        <button _on="click -> changeTitle()">switch title</button>
+        <button _click="myapp.dataset.conto += 1"> Conto dinamico: {{ conto }}</button>
+
+        <ul _for="item in lista">
+            <li data-value="{{ item.id }}">{{ item.name }}</li>
+        </ul>
+
+        <ol _for="item in semplice">
+            <li>{{ item }}</li>
+        </ol>
+    </div>
+    <script src="../SalsaVerde/salsaverde.global.js"></script>
+    <script name="app_test" type="text/javascript">
+
+        var myapp;
+        openKiosk("myapp").reserve({
+            data: {
+                title: "Applicazione di prova",
+                tasto: "testo del tasto",
+                data: new Date(),
+                conto: 0,
+                lista: [
+                    { id: 0, name: "elemento 1" },
+                    { id: 1, name: "elemento 2" },
+                    { id: 2, name: "elemento 3" },
+                    { id: 3, name: "elemento 4" }
+                ],
+                semplice: ["ciao 1", "ciao 2", "ciao 3"]
+            },
+            settings: {
+                formatter: {
+                    type: svenum.datatypes.date,
+                    stamp: (value) => {
+                        let _options = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
+                        return value.toLocaleDateString("it-IT", _options);
+                    }
+                }
+            }
+        }).globalize({ myapp });
+
+        function setAlert(messaggio) {
+            svglobal.claim(messaggio);
+        }
+        async function changeTitle() {
+            //let _app = svglobal.kiosk("myapp");
+            switch (myapp.dataset.title) {
+                case "Cambio titolo!": myapp.dataset.title = "Applicazione di prova"; break;
+                case "Applicazione di prova": myapp.dataset.title = "Cambio titolo!"; break;
+            }
+        }
+
+    </script>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-import { setTheTable, getProxy } from "./setup.js";
+import { setTheTable, renderHtmlReference, applyTagEvent } from "./setup.js";
 
 /**Salsaverde app */
 export default class Sandwich {
@@ -18,21 +18,29 @@ export default class Sandwich {
         }
     ];
     get target() { return document.getElementById(this.name) };
-    
+
     constructor(name) {
         this.name = name;
-        this.settings = null;
+        this.settings = {
+            formatter: this.#_default_formatter
+        };
         this.dataset = null;
         this.cookbook = [];
+        this.references = [];
     }
     /**Setup all dynamic components into the app*/
     cook(instructions = null) {
+        let _me = this;
 
         this.cookbook = instructions && instructions.components ? instructions.components : null;
         this.#_data = instructions && instructions.data ? instructions.data : null;
-        this.dataset = getProxy(this.name, this.#_data);
+        if (instructions) updateSettings(instructions.settings);
+        this.dataset = setupProxy();
 
-        setTheTable(this);
+        setTheTable(this, this.#_data);
+        renderAllHtmlReferences();
+        applyTagEvent(this.target);
+        svglobal.save();
 
         function setupProxy() {
             let _handler = {
@@ -53,6 +61,14 @@ export default class Sandwich {
             for (const ref of _me.references) {
                 renderHtmlReference(_me, ref, _me.#_data[ref.key]);
             }
+        }
+    }
+    /**Reset properties and close the app */
+    rearrange() {
+
+    }
+
+    //#region COMPONENTS
     /**add component into the app collection*/
     addRecipe(name, options = null) {
         let _recipe = null;
@@ -62,19 +78,24 @@ export default class Sandwich {
     getRecipe(name) {
         return this.cookbook.find((c) => c.name == name);
     }
+    //#endregion
 
-    rearrange() {
-
+    //#region SETTINGS
+    /**format text based on formatting app rules */
+    format(value) {
+        return this.settings.formatter.find(f => f.type == getDataType(value)).stamp(value);
     }
-
-    addReference(name, template, path) {
-        if (!this.references) this.references = [];
-        if (!this.references.find(r => r.name == name)) {
-            this.references.push({
-                name: name,
-                template: template,
-                path: path
-            });
+    /**add or personalize app formatting text rules */
+    addFormat(...formatter) {
+        for (const format of formatter) {
+            if (format && format.type && format.stamp) {
+                if (this.settings.formatter.find(f => f.type == format.type)) {
+                    this.settings.formatter = this.settings.formatter.filter(f => f.type != format.type);
+                }
+                this.settings.formatter.push(format);
+            }
         }
     }
+    //#endregion
 }
+

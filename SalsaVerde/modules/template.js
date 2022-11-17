@@ -1,5 +1,4 @@
 import { SpiceRack } from "./spice.js";
-import { staterecipe } from "./enumerators.js";
 import { errortype, stampError } from "./errors.js";
 
 export function createTemplate(templateText) {
@@ -25,7 +24,7 @@ export class BaseRecipe extends SpiceRack {
       
     };
 
-    this.state = staterecipe.mise; //state of elaboration
+    this.state = svenums.staterecipe.mise; //state of elaboration
     this.action = null; //server call
     this.data = []; //component data from wich the html is build
     this.name = name; //univoque reference of component in app environement

@@ -1,27 +1,17 @@
-import * as __enum from "./modules/enumerators.js";
 import __snack from "./modules/snack.js";
 import __app from "./modules/sandwich.js";
+import * as __errors from "./modules/errors.js";
 
-/**system enumerators */
-export const _enum = {
-    datatypes: __enum.datatypes,
-    regex: __enum.regex,
-    spicetype: __enum.spicetype,
-    snacktype: __enum.snacktype,
-    eventrecipe: __enum.eventrecipe,
-    staterecipe: __enum.staterecipe
-}
 /**stamp communication on screen */
-export function claim(message, type = __enum.snacktype.default, ...spices){
+export function claim(message, type = snacktype.default, ...spices) {
     __snack.apply(message, type, spices);
 }
-
 /**Get the app with specified name or create t if it doesn't exists */
 export function getApp(name) {
     let _app = svglobal.booths.find(a => a.name == name);
-    if(_app){
+    if (_app) {
         return _app;
-    }else{
+    } else {
         _app = serve(name);
         svglobal.booths.push(_app);
     }
@@ -39,8 +29,10 @@ export function clean(name) {
     svglobal.booths = svglobal.booths.filter(a => a.name != name);
     svglobal.save();
 }
-
-export function stampError(type, code, resolve) {
-    __errors.stampError(type, code);
-    if(resolve && getDataType(resolve, __enum.datatypes) == __enum.datatypes.function) resolve();
+/**Return a coded standard message error from errors storage sverrors*/
+export function getErrorMessage(type, code, message = "") {
+    if(code || message){
+        return __errors.stampError(type, code).format(message);
+    }
+    return message;
 }

@@ -1,5 +1,4 @@
-import { snacktype, spicetype } from "./enumerators.js";
-import { errortype, stampError } from "./errors.js";
+import { stampError } from "./errors.js";
 import __snack from "./snack.js";
 import __server from "./server.js";
 /**Management of spice collection*/
@@ -44,26 +43,26 @@ export class Spice {
     /**Execute the action */
     use(...args) {
         switch (this.type) {
-            case spicetype.link:
+            case svenum.spicetype.link:
                 try {
                     if (args && args.length > 0)
                         this.ingredients = this.ingredients.format(args);
                     window.open(this.ingredients, "_blank");
                 } catch (ex) {
-                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
-                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
+                    __snack.apply("An error occurred while the action was being performed", svenum.snacktype.error);
+                    console.error(stampError(svenum.errortype.notacceptable, "SVE4").format(this.name, ex));
                 }
                 break;
-            case spicetype.script:
+            case svenum.spicetype.script:
                 try {
                     if (this.ingredients.args) args.push(this.ingredients.args);
                     runFunctionByName(this.ingredients.name.format(args));
                 } catch (ex) {
-                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
-                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
+                    __snack.apply("An error occurred while the action was being performed", svenum.snacktype.error);
+                    console.error(stampError(svenum.errortype.notacceptable, "SVE4").format(this.name, ex));
                 }
                 break;
-            case spicetype.server:
+            case svenum.spicetype.server:
                 try {
                     if (args && args.length > 0) {
                         switch (args.length) {
@@ -81,11 +80,11 @@ export class Spice {
                         }
                     }
                 } catch (ex) {
-                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
-                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
+                    __snack.apply("An error occurred while the action was being performed", svenum.snacktype.error);
+                    console.error(stampError(svenum.errortype.notacceptable, "SVE4").format(this.name, ex));
                 }
                 break;
-            case spicetype.email:
+            case svenum.spicetype.email:
                 try {
                     let _to = this.ingredients.to;
                     let _cc = this.ingredients.cc ? "?cc=" + this.ingredients.cc : "";
@@ -95,8 +94,8 @@ export class Spice {
                     if (args && args.length > 0) subject = subject.format(args);
                     window.open("mailto:" + _to + _cc + subject, "_blank");
                 } catch (ex) {
-                    __snack.apply("An error occurred while the action was being performed", snacktype.error);
-                    console.error(stampError(errortype.notacceptable, "SVE4").format(this.name, ex));
+                    __snack.apply("An error occurred while the action was being performed", svenum.snacktype.error);
+                    console.error(stampError(svenum.errortype.notacceptable, "SVE4").format(this.name, ex));
                 }
                 break;
             default:
@@ -109,8 +108,8 @@ export class Spice {
             let _data = JSON.parse(json);
             return _data ? new Spice(_data.name, data.type, data.ingredients) : null;
         } catch (ex) {
-            __snack.apply("Impossible to convert the data", snacktype.error);
-            console.error(stampError(errortype.notacceptable, "SVE5").format(ex));
+            __snack.apply("Impossible to convert the data", svenum.snacktype.error);
+            console.error(stampError(svenum.errortype.notacceptable, "SVE5").format(ex));
         }
     }
 }
