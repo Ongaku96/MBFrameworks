@@ -39,3 +39,8 @@ export function clean(name) {
     svglobal.booths = svglobal.booths.filter(a => a.name != name);
     svglobal.save();
 }
+
+export function stampError(type, code, resolve) {
+    __errors.stampError(type, code);
+    if(resolve && getDataType(resolve, __enum.datatypes) == __enum.datatypes.function) resolve();
+}
