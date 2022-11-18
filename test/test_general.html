@@ -10,13 +10,16 @@
         <h1>{{ title }}</h1>
         <p>{{ data }}</p>
         <button _click="setAlert('messaggio da evento')">{{ tasto }}</button>
-        <button _on="click -> changeTitle()">switch title</button>
+        <button name="ciccio" _on="click -> changeTitle(e);">switch title</button>
         <button _click="myapp.dataset.conto += 1"> Conto dinamico: {{ conto }}</button>
+<br />
+<br />
+        <button _click="addItem()">Aggiungi</button>
+        <button _click="removeLast()">Rimuovi</button>
 
         <ul _for="item in lista">
-            <li data-value="{{ item.id }}">{{ item.name }}</li>
+            <li data-value="{{ item.id }}" name="{{ :index }}">{{ item.name }}</li>
         </ul>
-
         <ol _for="item in semplice">
             <li>{{ item }}</li>
         </ol>
@@ -53,12 +56,21 @@
         function setAlert(messaggio) {
             svglobal.claim(messaggio);
         }
-        async function changeTitle() {
-            //let _app = svglobal.kiosk("myapp");
+        function changeTitle(evt) {
+            // alert(evt.target.getAttribute("name"));
             switch (myapp.dataset.title) {
                 case "Cambio titolo!": myapp.dataset.title = "Applicazione di prova"; break;
                 case "Applicazione di prova": myapp.dataset.title = "Cambio titolo!"; break;
             }
+        }
+
+        function addItem() {
+            myapp.dataset.lista.push({ id: myapp.dataset.lista.length + 1, name: "elemento " + (myapp.dataset.lista.length + 1).toString() });
+            myapp.dataset.semplice.push("ciao " + (myapp.dataset.semplice.length + 1));
+        }
+        function removeLast() {
+            myapp.dataset.lista.pop();
+            myapp.dataset.semplice.pop();
         }
 
     </script>

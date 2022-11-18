@@ -27,7 +27,7 @@ export function clean(name) {
     let _app = getSandwich(name);
     _app.rearrange();
     svglobal.booths = svglobal.booths.filter(a => a.name != name);
-    svglobal.save();
+    svglobal.store();
 }
 /**Return a coded standard message error from errors storage sverrors*/
 export function getErrorMessage(type, code, message = "") {

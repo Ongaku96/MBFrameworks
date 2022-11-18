@@ -9,19 +9,21 @@ eventmapper.set(svenum.triggers.load, "load");
 eventmapper.set(svenum.triggers.submit, "submit");
 eventmapper.set(svenum.triggers.edit, "change textInput input keyup");
 
+const prefix = "_";
 const custommapper = new Map();
-custommapper.set(svenum.commands.for, "_for");
-custommapper.set(svenum.commands.on, "_on");
-custommapper.set(svenum.commands.name, "_name");
+custommapper.set(svenum.commands.for, prefix + "for");
+custommapper.set(svenum.commands.on, prefix + "on");
+custommapper.set(svenum.commands.name, prefix + "name");
+custommapper.set(svenum.commands.if, prefix + "if");
 
 /**Setup all the in tag references of the html */
 export function setTheTable(app, data) {
-  setHtmlReferences(app, data);
   setComponents(app.coockbook);
+  setHtmlReferences(app, data);
 }
 /**Refresh the element tag event */
 export function addTagEventListener(item, event, script) {
-  let _func = () => { runFunctionByName(script); };
+  let _func = (e) => { runFunctionByName(script, e); };
   item.removeEventListener(event, _func);
   item.addEventListener(event, _func);
 }
@@ -51,13 +53,14 @@ export function renderHtmlReference(app, reference, value) {
     for (const node of _nodes) {
       node.innerHTML = "";
       let _prefix = getPrefix(node.getAttribute(custommapper.get(svenum.commands.for)));
-      for (const item of value) {
+      for (let i = 0; i < value.length; i++) {
         let _html = reference.template;
         for (const t of reference.tag) {
           let _path = getPathFromTag(t, _prefix);
-          let _val = _path ==_prefix ? item : item[_path];
+          let _val = _path == _prefix ? value[i] : value[i][_path];
           _html = _html.replace(new RegExp(t), app.format(_val));
         }
+        _html = _html.replace(/{{ :index }}/, i.toString());
         node.innerHTML += _html;
       }
     }
@@ -97,6 +100,26 @@ export function applyTagEvent(target) {
     }
   }
 }
+/**Create a Recoursive Proxy */
+export function createOnChangeProxy(onChange, target, parent) {
+  return new Proxy(target, {
+    get(target, property) {
+      const item = target[property];
+      if (item && (getDataType(item) == svenum.datatypes.object || getDataType(item) == svenum.datatypes.array)) {
+        parent = property;
+        return createOnChangeProxy(onChange, item, parent);
+      }
+      return item;
+    },
+    set(target, property, newValue) {
+      target[property] = newValue
+      let _prop = getDataType(target) == svenum.datatypes.array ? parent : property;
+      let _val = getDataType(target) == svenum.datatypes.array ? target : newValue;
+      onChange(target, _prop, _val)
+      return true
+    },
+  });
+}
 /**convert html data references to value */
 function setHtmlReferences(app, data) {
   if (app && data) {
@@ -134,7 +157,6 @@ function setHtmlReferences(app, data) {
       let _template = _iterations[i].innerHTML;
       let _tags = _template.match(svenum.regex.reference);
       _iterations[i].setAttribute(custommapper.get(svenum.commands.name), _name);
-
       _references.push({
         key: key,
         name: _name,
@@ -157,10 +179,11 @@ function setComponents(cookbook) {
     }
   }
 }
-
+/**Elaborate tag and return object path stored inside */
 function getPathFromTag(tag, prefix) {
   return tag.replace("{{ ", "").replace(" }}", "").replace(prefix + ".", "");
 }
+/**Get prefixes used in reading array by html tag */
 function getPrefix(attribute) {
   let _split = attribute.split(" in ");
   if (_split.length > 0) return _split[0];

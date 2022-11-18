@@ -1,33 +1,34 @@
-import { setTheTable, renderHtmlReference, applyTagEvent } from "./setup.js";
+import { setTheTable, renderHtmlReference, applyTagEvent, createOnChangeProxy } from "./setup.js";
 
+const default_formatter = [
+    {
+        type: svenum.datatypes.date,
+        stamp: (value) => value.toLocaleDateString()
+    },
+    {
+        type: svenum.datatypes.string,
+        stamp: (value) => value.replace("\n", "<br />")
+    },
+    {
+        type: svenum.datatypes.number,
+        stamp: (value) => value.toString()
+    }
+];
 /**Salsaverde app */
 export default class Sandwich {
     #_data = null;
-    #_default_formatter = [
-        {
-            type: svenum.datatypes.date,
-            stamp: (value) => value.toLocaleDateString()
-        },
-        {
-            type: svenum.datatypes.string,
-            stamp: (value) => value.replace("\n", "<br />")
-        },
-        {
-            type: svenum.datatypes.number,
-            stamp: (value) => value.toString()
-        }
-    ];
     get target() { return document.getElementById(this.name) };
-
     constructor(name) {
         this.name = name;
         this.settings = {
-            formatter: this.#_default_formatter
+            formatter: default_formatter
         };
         this.dataset = null;
         this.cookbook = [];
         this.references = [];
     }
+
+    //#region SETUP
     /**Setup all dynamic components into the app*/
     cook(instructions = null) {
         let _me = this;
@@ -37,26 +38,28 @@ export default class Sandwich {
         if (instructions) updateSettings(instructions.settings);
         this.dataset = setupProxy();
 
+        //replace all components and tag with relative html patterns
         setTheTable(this, this.#_data);
+        //render values into the references
         renderAllHtmlReferences();
+        //apply event listeners
         applyTagEvent(this.target);
-        svglobal.save();
+        //refresh session storage
+        svglobal.store();
 
+        /**setup interaction data proxy */
         function setupProxy() {
-            let _handler = {
-                set(target, prop, value, receiver) {
-                    renderHtmlReference(_me, _me.references.find(r => r.key == prop), value);
-                    target[prop] = value;
-                    return true;
-                }
-            }
-            return new Proxy(_me.#_data, _handler);
+            return createOnChangeProxy(() => {
+                renderAllHtmlReferences();
+            }, _me.#_data);
         }
+        /**setup personalized settings */
         function updateSettings(settings) {
             if (settings && settings.formatter) {
                 _me.addFormat(settings.formatter);
             }
         }
+        /**replace all values to references tag on document */
         function renderAllHtmlReferences() {
             for (const ref of _me.references) {
                 renderHtmlReference(_me, ref, _me.#_data[ref.key]);
@@ -67,25 +70,44 @@ export default class Sandwich {
     rearrange() {
 
     }
+    /**Produce json compatible storage of object*/
+    freeze() {
+        return {
+            name: this.name,
+            coockbook: this.cookbook,
+            data: this.#_data,
+            settings: this.settings,
+            references: this.references
+        };
+    }
+    /**Read json storage and restore parameters value */
+    defrost(freezed) {
+        this.name = freezed.name;
+        this.cookbook = freezed.coockbook;
+        this.data = freezed.data;
+        this.settings = freezed.settings;
+        this.references = freezed.references;
+    }
+    //#endregion
 
     //#region COMPONENTS
-    /**add component into the app collection*/
-    addRecipe(name, options = null) {
+    /**Add component into the app collection*/
+    addRecipe(name, instructions = null) {
         let _recipe = null;
         this.cookbook.push(_recipe);
     }
-    /**get component from the app collection */
+    /**Get component from the app collection */
     getRecipe(name) {
         return this.cookbook.find((c) => c.name == name);
     }
     //#endregion
 
     //#region SETTINGS
-    /**format text based on formatting app rules */
+    /**Format text based on formatting app rules */
     format(value) {
         return this.settings.formatter.find(f => f.type == getDataType(value)).stamp(value);
     }
-    /**add or personalize app formatting text rules */
+    /**Add or personalize app formatting text rules */
     addFormat(...formatter) {
         for (const format of formatter) {
             if (format && format.type && format.stamp) {

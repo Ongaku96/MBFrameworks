@@ -44,12 +44,12 @@ class SalsaVerde {
     /**refresh data from session */
     retrive() {
         this.booths = [];
-        let _data = JSON.parse(sessionStorage.getItem(global_session_key));
+        let _data = sessionStorage.getItem(global_session_key);
         if (_data) {
-            for (let i = 0; i < _data.length; i++) {
-                if (this.booths.find(a => a.name == _data[i].name) == null) {
-                    this.booths.push(new app.Sandwich(_data[i].name, _data[i].options));
-                }
+            for (let app of _data) {
+                let _retrived = this.kiosk(app.name);
+                _retrived.defrost(app);
+                this.booths.push(_retrived);
             }
         }
     }
@@ -69,7 +69,7 @@ window.onload = () => {
 };
 
 /**Start a new app instance */
-var openKiosk = (name) => {
+window.openKiosk = (name) => {
     var _promise = SalsaVerde.instance().import.then((sv) => {
         let _kiosk = sv.kiosk(name);
         return _kiosk;
@@ -113,8 +113,11 @@ Boolean.prototype.datatype = () => svenum.datatypes.boolean;
 
 //#region SUPPORT
 /**Execute a javascript function by name */
-function runFunctionByName(script) {
-    Function(`"use strict";return (${script.replace(/'/g, "\"")})`)();
+function runFunctionByName(script, e) {
+    // script = script.replace(/'/g, "\"");
+    // Function({ evt }, `"use strict";return ${script}`)();
+    let _script = new Function("e", script.replace(/'/g, "\""));
+    return _script(e);
 }
 
 const _string_constructor = "".constructor;
@@ -247,7 +250,8 @@ const svenum = {
     commands: {
         for: 0,
         on: 1,
-        name: 2
+        name: 2,
+        if: 3
     },
     /**list of common client errors */
     errortype: {
