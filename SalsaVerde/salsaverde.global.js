@@ -34,11 +34,15 @@ class SalsaVerde {
     };
 
     /**save all data in session */
-    save() {
-        sessionStorage.setItem(global_session_key, JSON.stringify(this.booths));
+    store() {
+        let _storage = [];
+        for (const app of this.booths) {
+            _storage.push(app.freeze());
+        }
+        sessionStorage.setItem(global_session_key, JSON.stringify(_storage));
     }
     /**refresh data from session */
-    update() {
+    retrive() {
         this.booths = [];
         let _data = JSON.parse(sessionStorage.getItem(global_session_key));
         if (_data) {
