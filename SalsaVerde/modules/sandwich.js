@@ -70,6 +70,16 @@ export default class Sandwich {
     rearrange() {
 
     }
+    /**refresh render application on html */
+    flash(){
+        this.target.innerHTML = this.content;
+        setTheTable(this, this.#_data);
+        for (const ref of this.references) {
+            renderHtmlReference(this, ref, this.#_data[ref.key]);
+        }
+        applyTagEvent(this);
+    }
+
     /**Produce json compatible storage of object*/
     freeze() {
         return {
