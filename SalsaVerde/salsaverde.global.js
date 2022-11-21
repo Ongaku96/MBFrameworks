@@ -109,15 +109,29 @@ Array.prototype.datatype = () => svenum.datatypes.array;
 Object.prototype.datatype = () => svenum.datatypes.object;
 Number.prototype.datatype = () => svenum.datatypes.number;
 Boolean.prototype.datatype = () => svenum.datatypes.boolean;
+
+function* nextAll(parent, selector) {
+    while (parent = parent.nextElementSibiling) {
+        if (parent.matches(selector)) {
+            yield parent;
+        }
+    }
+}
+function* prevAll(parent, selector) {
+    while (parent = parent.previousElementSibling) {
+        if (parent.matches(selector)) {
+            yield parent;
+        }
+    }
+}
 //#endregion
 
 //#region SUPPORT
 /**Execute a javascript function by name */
-function runFunctionByName(script, e) {
-    // script = script.replace(/'/g, "\"");
-    // Function({ evt }, `"use strict";return ${script}`)();
-    let _script = new Function("e", script.replace(/'/g, "\""));
-    return _script(e);
+function runFunctionByName(script, e, app) {
+    var _script = script.replace(/'/g, "\"").replace(svenum.regex.app, (match) => `app.dataset${match}`);
+    let _function = new Function("e", "app", _script);
+    return _function(e, app);
 }
 
 const _string_constructor = "".constructor;
@@ -163,7 +177,8 @@ const svenum = {
         date: /(^(\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1})[\/|\-|\.]+\d{4})|(^(\d{4}[\/|\-|\.]+\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1}))$/,
         dateformat:
             /([0][1-9]|[1][0-9]|[2][0-9]|[3][0-1])[/|.|-|,|;]([0][1-9]|[1][0-2])[/|.|-|,|;](([1][9][0-9]{2}|[2][0-9]{3})|(\d{2}))/,
-        reference: /{{\s[a-zA-Z0-9._]+\s}}/gm
+        reference: /{{\s[a-zA-Z0-9._]+\s}}/gm,
+        app: /(?:\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g
     },
     /**Enumerator for the file size formatter */
     filesize: {
@@ -248,10 +263,13 @@ const svenum = {
     },
     /**List of supported inline html commands */
     commands: {
-        for: 0,
-        on: 1,
-        name: 2,
-        if: 3
+        value: 0,
+        for: 1,
+        on: 2,
+        name: 3,
+        if: 4,
+        else: 5,
+        elseif: 6
     },
     /**list of common client errors */
     errortype: {
@@ -287,4 +305,6 @@ sverrors.set("SVE3", "Server connection timeout for the component {0}");
 sverrors.set("SVE4", "The Spice {0} ran into a problem while running: {1}");
 sverrors.set("SVE5", "An error occurred in the conversion of the json to Spice: {0}");
 sverrors.set("SVE6", "Impossible to load the framework: {0}");
+sverrors.set("SVE7", "An error occurred while the application setup: {0}");
+sverrors.set("SVE8", "An error occurred while the application rendering: {0}");
 //#endregion

@@ -1,4 +1,4 @@
-import { setTheTable, renderHtmlReference, applyTagEvent, createOnChangeProxy } from "./setup.js";
+import { setTheTable, renderHtmlReference, applyTagEvent, createOnChangeProxy, renderValues, renderIf } from "./setup.js";
 
 const default_formatter = [
     {
@@ -20,12 +20,14 @@ export default class Sandwich {
     get target() { return document.getElementById(this.name) };
     constructor(name) {
         this.name = name;
+        this.content = this.target.innerHTML;
         this.settings = {
             formatter: default_formatter
         };
         this.dataset = null;
         this.cookbook = [];
         this.references = [];
+
     }
 
     //#region SETUP
@@ -33,24 +35,25 @@ export default class Sandwich {
     cook(instructions = null) {
         let _me = this;
 
-        this.cookbook = instructions && instructions.components ? instructions.components : null;
         this.#_data = instructions && instructions.data ? instructions.data : null;
+        this.cookbook = instructions && instructions.components ? instructions.components : null;
         if (instructions) updateSettings(instructions.settings);
         this.dataset = setupProxy();
 
         //replace all components and tag with relative html patterns
         setTheTable(this, this.#_data);
+
         //render values into the references
         renderAllHtmlReferences();
         //apply event listeners
-        applyTagEvent(this.target);
+        applyTagEvent(this);
         //refresh session storage
         svglobal.store();
 
         /**setup interaction data proxy */
         function setupProxy() {
             return createOnChangeProxy(() => {
-                renderAllHtmlReferences();
+                _me.flash();
             }, _me.#_data);
         }
         /**setup personalized settings */
@@ -61,22 +64,25 @@ export default class Sandwich {
         }
         /**replace all values to references tag on document */
         function renderAllHtmlReferences() {
+            renderIf(_me);
             for (const ref of _me.references) {
                 renderHtmlReference(_me, ref, _me.#_data[ref.key]);
             }
+            renderValues(_me, _me.#_data);
         }
     }
     /**Reset properties and close the app */
     rearrange() {
-
     }
     /**refresh render application on html */
-    flash(){
+    flash() {
         this.target.innerHTML = this.content;
         setTheTable(this, this.#_data);
+        renderIf(this);
         for (const ref of this.references) {
             renderHtmlReference(this, ref, this.#_data[ref.key]);
         }
+        renderValues(this, this.#_data);
         applyTagEvent(this);
     }
 
@@ -87,7 +93,8 @@ export default class Sandwich {
             coockbook: this.cookbook,
             data: this.#_data,
             settings: this.settings,
-            references: this.references
+            references: this.references,
+            content: this.content
         };
     }
     /**Read json storage and restore parameters value */
@@ -97,6 +104,7 @@ export default class Sandwich {
         this.data = freezed.data;
         this.settings = freezed.settings;
         this.references = freezed.references;
+        this.content = freezed.content;
     }
     //#endregion
 
@@ -115,7 +123,8 @@ export default class Sandwich {
     //#region SETTINGS
     /**Format text based on formatting app rules */
     format(value) {
-        return this.settings.formatter.find(f => f.type == getDataType(value)).stamp(value);
+        let _formatter = this.settings.formatter.find(f => f.type == getDataType(value));
+        return _formatter ? _formatter.stamp(value) : value.toString();
     }
     /**Add or personalize app formatting text rules */
     addFormat(...formatter) {

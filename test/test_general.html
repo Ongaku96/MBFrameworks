@@ -11,17 +11,21 @@
         <p>{{ data }}</p>
         <button _click="setAlert('messaggio da evento')">{{ tasto }}</button>
         <button name="ciccio" _on="click -> changeTitle(e);">switch title</button>
-        <button _click="myapp.dataset.conto += 1"> Conto dinamico: {{ conto }}</button>
-<br />
-<br />
+        <button _click=".conto += 1"> Conto dinamico: {{ conto }}</button>
+        <br />
+        <br />
         <button _click="addItem()">Aggiungi</button>
         <button _click="removeLast()">Rimuovi</button>
-
-        <ul _for="item in lista">
-            <li data-value="{{ item.id }}" name="{{ :index }}">{{ item.name }}</li>
-        </ul>
-        <ol _for="item in semplice">
-            <li>{{ item }}</li>
+        <div style="display:flex; flex-direction:row;">
+            <ul _for="item in lista" _if=".conto > 3">
+                <li data-value="{{ item.id }}" name="{{ :index }}">{{ item.name }} - {{ conto }}</li>
+            </ul>
+            <ul _for="item in semplice" _else>
+                <li>{{ item }} {{ :index }}</li>
+            </ul>
+        </div>
+        <ol _for="item in lista">
+            <li>{{ item.name }}</li>
         </ol>
     </div>
     <script src="../SalsaVerde/salsaverde.global.js"></script>
@@ -35,18 +39,18 @@
                 data: new Date(),
                 conto: 0,
                 lista: [
-                    { id: 0, name: "elemento 1" },
-                    { id: 1, name: "elemento 2" },
-                    { id: 2, name: "elemento 3" },
-                    { id: 3, name: "elemento 4" }
+                    { id: 1, name: "elemento 1" },
+                    { id: 2, name: "elemento 2" },
+                    { id: 3, name: "elemento 3" },
+                    { id: 4, name: "elemento 4" }
                 ],
-                semplice: ["ciao 1", "ciao 2", "ciao 3"]
+                semplice: ["ciao", "ciao", "ciao"]
             },
             settings: {
                 formatter: {
                     type: svenum.datatypes.date,
                     stamp: (value) => {
-                        let _options = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
+                        let _options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
                         return value.toLocaleDateString("it-IT", _options);
                     }
                 }
@@ -66,7 +70,7 @@
 
         function addItem() {
             myapp.dataset.lista.push({ id: myapp.dataset.lista.length + 1, name: "elemento " + (myapp.dataset.lista.length + 1).toString() });
-            myapp.dataset.semplice.push("ciao " + (myapp.dataset.semplice.length + 1));
+            myapp.dataset.semplice.push("ciao");
         }
         function removeLast() {
             myapp.dataset.lista.pop();
