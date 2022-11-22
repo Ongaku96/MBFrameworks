@@ -123,8 +123,11 @@ export default class Sandwich {
     //#region SETTINGS
     /**Format text based on formatting app rules */
     format(value) {
-        let _formatter = this.settings.formatter.find(f => f.type == getDataType(value));
-        return _formatter ? _formatter.stamp(value) : value.toString();
+        if (value != null) {
+            let _formatter = this.settings.formatter.find(f => f.type == getDataType(value));
+            return _formatter ? _formatter.stamp(value) : value.toString();
+        }
+        return "";
     }
     /**Add or personalize app formatting text rules */
     addFormat(...formatter) {

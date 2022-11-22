@@ -3,30 +3,58 @@
 
 <head>
     <link rel="stylesheet" href="../SalsaVerde/bundle.css" />
+    <style>
+        .usato{
+            background-color: darkgrey;
+        }
+        .nuovo{
+            background-color: aquamarine;
+        }
+    </style>
 </head>
 
 <body>
     <div id="myapp">
         <h1>{{ title }}</h1>
-        <p>{{ data }}</p>
-        <button _click="setAlert('messaggio da evento')">{{ tasto }}</button>
-        <button name="ciccio" _on="click -> changeTitle(e);">switch title</button>
-        <button _click=".conto += 1"> Conto dinamico: {{ conto }}</button>
+        <div style="display:flex; flex-direction: row;">
+            <p>{{ data }}</p>
+            <p _if="$.hover">mouse hover detected</p>
+        </div>
+        <button _click="setalert('messaggio da evento')">{{ tasto }}</button>
+        <div name="ciccio" _click="changetitle(e);"
+            style="padding:1rem; margin:.5rem; cursor: pointer; background-color: blue; color: lightgray;">switch title
+        </div>
+        <button _on="click -> $.conto += 1" _if="$.conto > 5 -> disabled"> conto dinamico: {{ conto }}</button>
         <br />
         <br />
-        <button _click="addItem()">Aggiungi</button>
-        <button _click="removeLast()">Rimuovi</button>
+        <button _click="addItem()">aggiungi</button>
+        <button _click="removeLast()">rimuovi</button>
         <div style="display:flex; flex-direction:row;">
-            <ul _for="item in lista" _if=".conto > 3">
-                <li data-value="{{ item.id }}" name="{{ :index }}">{{ item.name }} - {{ conto }}</li>
+            <ul _for="item in lista" _if="!($.conto % 2)" _sort="item.id desc">
+                <li data-value="{{ item.id }}" name="{{ :index }}">{{ item.name }}</li>
             </ul>
-            <ul _for="item in semplice" _else>
+            <p style="margin: 1rem;" _elseif="$.conto == 3">prova di continuità<br /> della logica if-else</p>
+            <ul _for="item in semplice" _else _sort="item desc">
                 <li>{{ item }} {{ :index }}</li>
             </ul>
         </div>
-        <ol _for="item in lista">
-            <li>{{ item.name }}</li>
-        </ol>
+        <ol _for="item in lista" _filter="!(item.id % 2)">
+            <li>{{ item.name }} - {{ conto }}</li>
+        </ol>            
+        <div _for="item in semplice">
+            <span style="padding: .5rem; margin: 0 .5em; border-radius: 8px; background-color:azure;">{{ item }}</span>
+        </div>
+
+        <div class="usato" _if="$.tavolo.nuovo -> nuovo"
+            style="border: solid 1px black; border-radius: 8px; padding: 1rem; margin: 1rem;">
+            <h1>Il nostro tavolo</h1>
+            <p><strong>tipologia di copertura: </strong>{{ tavolo.copertura }}</p>
+            <p><strong>n° zampe: </strong>{{ tavolo.zampe }}</p>
+            <button _on="click -> $.tavolo.nuovo = !$.tavolo.nuovo">
+                <span _if="$.tavolo.nuovo">USA</span>
+                <span _else>RINNOVA</span>
+            </button>
+        </div>
     </div>
     <script src="../SalsaVerde/salsaverde.global.js"></script>
     <script name="app_test" type="text/javascript">
@@ -35,7 +63,7 @@
         openKiosk("myapp").reserve({
             data: {
                 title: "Applicazione di prova",
-                tasto: "testo del tasto",
+                tasto: "Riproduci alert di sistema",
                 data: new Date(),
                 conto: 0,
                 lista: [
@@ -44,7 +72,15 @@
                     { id: 3, name: "elemento 3" },
                     { id: 4, name: "elemento 4" }
                 ],
-                semplice: ["ciao", "ciao", "ciao"]
+                semplice: ["1 pillola", "6 pillola", "5 pillola"],
+                hover: false,
+                tavolo: {
+                    zampe: 4,
+                    copertura: "tovaglia",
+                    materiale: "legno",
+                    durezza: 10,
+                    nuovo: false
+                }
             },
             settings: {
                 formatter: {
@@ -63,8 +99,8 @@
         function changeTitle(evt) {
             // alert(evt.target.getAttribute("name"));
             switch (myapp.dataset.title) {
-                case "Cambio titolo!": myapp.dataset.title = "Applicazione di prova"; break;
-                case "Applicazione di prova": myapp.dataset.title = "Cambio titolo!"; break;
+                case "cambio titolo!": myapp.dataset.title = "Applicazione di prova"; break;
+                case "Applicazione di prova": myapp.dataset.title = "cambio titolo!"; break;
             }
         }
 

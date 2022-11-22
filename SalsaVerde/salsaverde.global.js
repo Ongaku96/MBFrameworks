@@ -110,28 +110,53 @@ Object.prototype.datatype = () => svenum.datatypes.object;
 Number.prototype.datatype = () => svenum.datatypes.number;
 Boolean.prototype.datatype = () => svenum.datatypes.boolean;
 
-function* nextAll(parent, selector) {
-    while (parent = parent.nextElementSibiling) {
-        if (parent.matches(selector)) {
-            yield parent;
-        }
-    }
-}
-function* prevAll(parent, selector) {
-    while (parent = parent.previousElementSibling) {
-        if (parent.matches(selector)) {
-            yield parent;
-        }
-    }
-}
 //#endregion
 
 //#region SUPPORT
 /**Execute a javascript function by name */
 function runFunctionByName(script, e, app) {
-    var _script = script.replace(/'/g, "\"").replace(svenum.regex.app, (match) => `app.dataset${match}`);
+    var _script = script.replace(/'/g, "\"").replace(svenum.regex.app, (match) => {
+        let _formatted_match = match.slice(1);
+        return `app.dataset${_formatted_match}`;
+    });
     let _function = new Function("e", "app", _script);
     return _function(e, app);
+}
+/**Get Property of object by string path */
+function propByString(obj, path) {
+    for (var i = 0, path = path.split('.'), len = path.length; i < len; i++) {
+        if (obj) obj = obj[path[i]];
+    };
+    return obj;
+};
+/**
+ * Function to sort alphabetically an array of objects by some specific key.
+ * 
+ * @param {String}; property Key of the object to sort.
+ */
+function dynamicSort(property, desc) {
+    return function (a, b) {
+        let _first = propByString(a, property) ? propByString(a, property) : a;
+        let _second = propByString(b, property) ? propByString(b, property) : b;
+
+        if (isNaN(_first)) {
+            if (desc) {
+                return _second.localeCompare(_first);
+            } else {
+                return _first.localeCompare(_second);
+            };
+        } else {
+            if (desc) {
+                return _second - _first;
+            } else {
+                return _first - _second;
+            };
+        };
+    };
+};
+
+function duplicateArray(array) {
+    return JSON.parse(JSON.stringify(array));
 }
 
 const _string_constructor = "".constructor;
@@ -151,6 +176,10 @@ function getDataType(object) {
     if (!isNaN(object)) return svenum.datatypes.number;
     return "unknown";
 };
+
+function setMouseHoverTarget(e, hover) {
+    e.target.setAttribute("data-hover", hover);
+}
 //#endregion
 
 //#region ENUMERATORS
@@ -178,7 +207,7 @@ const svenum = {
         dateformat:
             /([0][1-9]|[1][0-9]|[2][0-9]|[3][0-1])[/|.|-|,|;]([0][1-9]|[1][0-2])[/|.|-|,|;](([1][9][0-9]{2}|[2][0-9]{3})|(\d{2}))/,
         reference: /{{\s[a-zA-Z0-9._]+\s}}/gm,
-        app: /(?:\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g
+        app: /(?:\$\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g
     },
     /**Enumerator for the file size formatter */
     filesize: {
@@ -259,7 +288,8 @@ const svenum = {
         load: "_load",
         change: "_change",
         submit: "_submit",
-        edit: "_edit"
+        edit: "_edit",
+        hover: "_hover"
     },
     /**List of supported inline html commands */
     commands: {
@@ -269,7 +299,9 @@ const svenum = {
         name: 3,
         if: 4,
         else: 5,
-        elseif: 6
+        elseif: 6,
+        filter: 7,
+        sort: 8
     },
     /**list of common client errors */
     errortype: {

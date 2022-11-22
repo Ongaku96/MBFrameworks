@@ -10,6 +10,7 @@ eventmapper.set(svenum.triggers.change, "change");
 eventmapper.set(svenum.triggers.load, "load");
 eventmapper.set(svenum.triggers.submit, "submit");
 eventmapper.set(svenum.triggers.edit, "change textInput input keyup");
+eventmapper.set(svenum.triggers.hover, "hover");
 
 const prefix = "_";
 const custommapper = new Map();
@@ -17,8 +18,10 @@ custommapper.set(svenum.commands.for, prefix + "for");
 custommapper.set(svenum.commands.on, prefix + "on");
 custommapper.set(svenum.commands.name, prefix + "name");
 custommapper.set(svenum.commands.if, prefix + "if");
-custommapper.set(svenum.commands.ifelse, prefix + "ifelse");
+custommapper.set(svenum.commands.elseif, prefix + "elseif");
 custommapper.set(svenum.commands.else, prefix + "else");
+custommapper.set(svenum.commands.filter, prefix + "filter");
+custommapper.set(svenum.commands.sort, prefix + "sort");
 //#endregion
 
 //#region SETUP
@@ -102,17 +105,21 @@ export function renderHtmlReference(app, reference, value) {
       case svenum.commands.for: stampArray(); break;
     }
   }
+
   function stampArray() {
     let _nodes = app.target.querySelectorAll("[" + custommapper.get(svenum.commands.name) + "='" + reference.name + "']");
     for (const node of _nodes) {
       node.innerHTML = "";
       let _prefix = getArrayParameter(node.getAttribute(custommapper.get(svenum.commands.for)), "prefix");
-      for (let i = 0; i < value.length; i++) {
+      let _value = duplicateArray(value);
+      _value = sort(_value, node.getAttribute(custommapper.get(svenum.commands.sort)), _prefix);
+      _value = filter(_value, node.getAttribute(custommapper.get(svenum.commands.filter)), _prefix);
+      for (let i = 0; i < _value.length; i++) {
         let _html = reference.template;
         for (const t of reference.tag) {
           if (t.includes(_prefix)) {
             let _path = getPathFromTag(t, _prefix);
-            let _val = _path == _prefix ? value[i] : value[i][_path];
+            let _val = _path == _prefix ? _value[i] : _value[i][_path];
             _html = _html.replace(new RegExp(t), app.format(_val));
           }
         }
@@ -120,6 +127,22 @@ export function renderHtmlReference(app, reference, value) {
         node.innerHTML += _html;
       }
     }
+  }
+
+  function sort(array, sort, prefix) {
+    if (array && sort) {
+      return array.sort(dynamicSort(sort.replace(" desc", "").replace(prefix + ".", ""), sort.includes("desc")));
+    }
+    return array;
+  }
+  function filter(array, condition, prefix) {
+    if (array && condition) {
+      return array.filter(e => {
+        let _func = new Function(prefix, "return " + condition.replace(/'/g, "\""));
+        return _func(e);
+      });
+    }
+    return array;
   }
 }
 /**Get all framework click tag into the app and set the events */
@@ -138,7 +161,17 @@ export function applyTagEvent(app) {
       let _items = app.target.querySelectorAll("[" + _selector + "]");
       if (_items.length > 0) {
         for (let i = 0; i < _items.length; i++) {
-          addTagEventListener(_items[i], _event, _items[i].getAttribute(_selector), app);
+          switch (_event) {
+            case "hover":
+              // let _enter = "setMouseHoverTarget(e, true);";
+              // let _leave = "setMouseHoverTarget(e, false);";
+              let _script = _items[i].getAttribute(_selector);
+              addTagEventListener(_items[i], "mouseenter", _script, app);
+              addTagEventListener(_items[i], "mouseleave", _script, app);
+              break;
+            default: addTagEventListener(_items[i], _event, _items[i].getAttribute(_selector), app); break;
+          }
+
         }
       }
     }
@@ -150,7 +183,16 @@ export function applyTagEvent(app) {
         let _attribute = _items[i].getAttribute(custommapper.get(svenum.commands.on));
         if (_attribute) {
           let _split = _attribute.split(" -> ");
-          addTagEventListener(_items[i], _split[0], _split[1], app);
+          switch (_split[0]) {
+            case "hover":
+              let _enter = "setMouseHoverTarget(e, true);";
+              let _leave = "setMouseHoverTarget(e, false);";
+              addTagEventListener(_items[i], "mouseenter", _enter + _split[1], app);
+              addTagEventListener(_items[i], "mouseleave", _leave + _split[1], app);
+              break;
+            default: addTagEventListener(_items[i], _split[0], _split[1], app); break;
+          }
+
         }
       }
     }
@@ -158,7 +200,7 @@ export function applyTagEvent(app) {
 }
 /**render html references of data value */
 export function renderValues(app, data) {
-  app.target.innerHTML = app.target.innerHTML.replace(svenum.regex.reference, (match) => app.format(data[match.replace("{{ ", "").replace(" }}", "")]));
+  app.target.innerHTML = app.target.innerHTML.replace(svenum.regex.reference, (match) => app.format(propByString(data, match.replace("{{ ", "").replace(" }}", ""))));
 }
 export function renderIf(app) {
   let _elements = Array.from(app.target.querySelectorAll("[" + custommapper.get(svenum.commands.if) + "]"));
@@ -183,7 +225,7 @@ export function renderIf(app) {
         }
       }
     } catch (ex) {
-      console.error(getErrorMessage(svenum.errortype.methodnotallowed, "SVE8").format(ex.TypeError));
+      console.error(getErrorMessage(svenum.errortype.methodnotallowed, "SVE8").format(ex));
     }
   }
 
@@ -193,17 +235,19 @@ export function renderIf(app) {
     if (!_visible) item.remove();
     while (_next && !_next.hasAttribute(custommapper.get(svenum.commands.if))) {
       let _node_condition = _next;
+      let _remove = false;
 
       if (_node_condition.hasAttribute(custommapper.get(svenum.commands.elseif))) {
         let _else_attr = _node_condition.getAttribute(custommapper.get(svenum.commands.elseif));
         let _temp_visible = runFunctionByName("return " + _else_attr, null, app);
-        if (_visible || !_temp_visible) _node_condition.remove();
+        _remove = _visible || !_temp_visible;
         _visible = _visible ? _visible : _temp_visible;
       } else {
-        if (_visible && _node_condition.hasAttribute(custommapper.get(svenum.commands.else))) _node_condition.remove();
+        _remove = _visible && _node_condition.hasAttribute(custommapper.get(svenum.commands.else));
       }
 
       _next = _next.nextElementSibling;
+      if (_remove) _node_condition.remove();
     }
   }
 }
