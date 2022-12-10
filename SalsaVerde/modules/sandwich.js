@@ -1,5 +1,6 @@
-import { setTheTable, renderHtmlReference, applyTagEvent, createOnChangeProxy, renderValues, renderIf } from "./setup.js";
-
+import * as __setup from "./setup.js";
+import * as __vnode from "./vnodes.js";
+//{ setTheTable, renderHtmlReference, applyTagEvent, createOnChangeProxy, renderValues, renderIf }
 const default_formatter = [
     {
         type: svenum.datatypes.date,
@@ -20,70 +21,55 @@ export default class Sandwich {
     get target() { return document.getElementById(this.name) };
     constructor(name) {
         this.name = name;
-        this.content = this.target.innerHTML;
         this.settings = {
             formatter: default_formatter
         };
         this.dataset = null;
         this.cookbook = [];
         this.references = [];
-
+        this.broccoli = new Broccoli();
+        this.setup();
     }
 
     //#region SETUP
+    setup(){
+        this.broccoli.boil(this);
+    }
     /**Setup all dynamic components into the app*/
-    cook(instructions = null) {
+    cook(forniture = null) {
         let _me = this;
 
-        this.#_data = instructions && instructions.data ? instructions.data : null;
-        this.cookbook = instructions && instructions.components ? instructions.components : null;
-        if (instructions) updateSettings(instructions.settings);
-        this.dataset = setupProxy();
-
-        //replace all components and tag with relative html patterns
-        setTheTable(this, this.#_data);
-
-        //render values into the references
-        renderAllHtmlReferences();
-        //apply event listeners
-        applyTagEvent(this);
-        //refresh session storage
+        setupData();
+        this.flash();
         svglobal.store();
 
-        /**setup interaction data proxy */
-        function setupProxy() {
-            return __setup.createOnChangeProxy(() => {
-                _me.flash();
-            }, _me.#_data);
-        }
-        /**setup personalized settings */
-        function updateSettings(settings) {
-            if (settings && settings.formatter) {
-                _me.addFormat(settings.formatter);
+        /**Application setup */
+        function setupData() {
+            _me.#_data = forniture && forniture.data ? forniture.data : null;
+            _me.cookbook = forniture && forniture.recipes ? forniture.recipes : null;
+            if (forniture) updateSettings(forniture.demands);
+            _me.dataset = setupProxy();
+
+            /**setup interaction data proxy */
+            function setupProxy() {
+                return __setup.createOnChangeProxy((prop, attr, val) => {
+                    _me.flash(attr);
+                }, _me.#_data);
             }
-        }
-        /**replace all values to references tag on document */
-        function renderAllHtmlReferences() {
-            renderIf(_me);
-            for (const ref of _me.references) {
-                renderHtmlReference(_me, ref, _me.#_data[ref.key]);
+            /**setup personalized settings */
+            function updateSettings(settings) {
+                if (settings && settings.formatter) {
+                    _me.addFormat(settings.formatter);
+                }
             }
-            renderValues(_me, _me.#_data);
         }
     }
     /**Reset properties and close the app */
     rearrange() {
     }
     /**refresh render application on html */
-    flash() {
-        this.target.innerHTML = this.content;
-        setTheTable(this, this.#_data);
-        renderIf(this);
-        for (const ref of this.references) {
-            renderHtmlReference(this, ref, this.#_data[ref.key]);
-        }
-        renderValues(this, this.#_data);
-        applyTagEvent(this);
+    flash(attr = null) {
+        this.broccoli.serve(this, attr);
     }
 
     /**Produce json compatible storage of object*/
@@ -93,8 +79,7 @@ export default class Sandwich {
             coockbook: this.cookbook,
             data: this.#_data,
             settings: this.settings,
-            references: this.references,
-            content: this.content
+            references: this.references
         };
     }
     /**Read json storage and restore parameters value */
@@ -104,13 +89,12 @@ export default class Sandwich {
         this.data = freezed.data;
         this.settings = freezed.settings;
         this.references = freezed.references;
-        this.content = freezed.content;
     }
     //#endregion
 
     //#region COMPONENTS
     /**Add component into the app collection*/
-    addRecipe(name, instructions = null) {
+    addRecipe(name, demands = null) {
         let _recipe = null;
         this.cookbook.push(_recipe);
     }
@@ -143,3 +127,80 @@ export default class Sandwich {
     //#endregion
 }
 
+class Broccoli {
+    constructor() {
+        this.children = [];
+    }
+    add(vnode) {
+        this.children.push(vnode);
+    }
+    remove(name) {
+        this.children = this.children.filter(c => c.name != name);
+    }
+    boil(app) {
+        this.add(new __vnode.vNode(app.target));
+        // for (const key of __setup.custommapper.keys()) {
+        //     let _items = app.target.querySelectorAll("[" + __setup.custommapper.get(key) + "]");
+        //     for (const item of _items) {
+        //         switch (key) {
+        //             case svenum.commands.if: this.add(new __vnode.vIf(item)); break;
+        //             case svenum.commands.for: this.add(new __vnode.vFor(item)); break;
+        //             case svenum.commands.model: this.add(new __vnode.vModel(item)); break;
+        //             case svenum.commands.on: this.add(new __vnode.vOn(item)); break;
+        //         }
+        //     }
+        // }
+    }
+    serve(app, attr = null) {
+        for (const child of this.children) {
+            child.render(app);
+        }
+
+        // let _find_refs = (item, type) => {
+        //     let _has_attr = true;
+        //     if (attr) {
+        //         _has_attr = item.properties && item.properties.find(a => a == attr) != null;
+        //     }
+        //     return item.type == type && _has_attr;
+        // }
+        // let _if = this.children.filter(n => _find_refs(n, svenum.commands.if));
+        // let _for = this.children.filter(n => _find_refs(n, svenum.commands.for));
+        // let _model = this.children.filter(n => _find_refs(n, svenum.commands.model));
+        // let _on = this.children.filter(n => _find_refs(n, svenum.commands.on));
+        // for (const child of _if) {
+        //     child.render(app);
+        // }
+        // for (const child of _for) {
+        //     child.render(app);
+        // }
+        // for (const child of _model) {
+        //     child.render(app);
+        // }
+        // for (const child of _on) {
+        //     child.render(app);
+        // }
+    }
+
+}
+
+//#region OBSOLETE
+function renderMethodOld(app, data) {
+    //refresh application html with original references
+    app.target.innerhtml = app.content;
+    //store references and templates for list rendering
+    __setup.setthetable(app, data);
+    //render conditional visibility
+    __setup.renderif(app);
+    //render all references previously stored
+    for (const ref of app.references) {
+        __setup.renderhtmlreference(app, ref, data[ref.key]);
+    }
+    //render simpler values tags
+    __setup.rendervalues(app, data);
+    //connect input to data and setup values
+    __setup.rendermodels(app, data);
+
+    //setup buttons and events on elements
+    __setup.applytagevent(app, data);
+}
+//#endregion

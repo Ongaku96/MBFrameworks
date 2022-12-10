@@ -4,31 +4,35 @@ import * as __error from "./errors.js";
 import { getErrorMessage } from '../salsaverde.js';
 
 //#region REFERENCES
-const eventmapper = new Map();
-eventmapper.set(svenum.triggers.click, "click");
-eventmapper.set(svenum.triggers.change, "change");
-eventmapper.set(svenum.triggers.load, "load");
-eventmapper.set(svenum.triggers.submit, "submit");
-eventmapper.set(svenum.triggers.edit, "change textInput input keyup");
-eventmapper.set(svenum.triggers.hover, "hover");
-
-const prefix = "_";
-const custommapper = new Map();
-custommapper.set(svenum.commands.for, prefix + "for");
-custommapper.set(svenum.commands.on, prefix + "on");
-custommapper.set(svenum.commands.name, prefix + "name");
-custommapper.set(svenum.commands.if, prefix + "if");
-custommapper.set(svenum.commands.elseif, prefix + "elseif");
-custommapper.set(svenum.commands.else, prefix + "else");
-custommapper.set(svenum.commands.filter, prefix + "filter");
-custommapper.set(svenum.commands.sort, prefix + "sort");
+/**Map of supported events */
+export const eventmapper = new Map([
+  [svenum.triggers.click, "click"],
+  [svenum.triggers.change, "change"],
+  [svenum.triggers.load, "load"],
+  [svenum.triggers.submit, "submit"],
+  [svenum.triggers.edit, "change textInput input keyup"],
+  [svenum.triggers.hover, "hover"]
+]);
+const prefix = "sv-";
+/**Map of framework's html references */
+export const attrmapper = new Map([
+  [svenum.commands.model, prefix + "model"],
+  [svenum.commands.for, prefix + "for"],
+  [svenum.commands.on, prefix + "on"],
+  [svenum.commands.name, prefix + "name"],
+  [svenum.commands.if, prefix + "if"],
+  [svenum.commands.elseif, prefix + "elseif"],
+  [svenum.commands.else, prefix + "else"],
+  [svenum.commands.filter, prefix + "filter"],
+  [svenum.commands.sort, prefix + "sort"]
+]);
 //#endregion
 
 //#region SETUP
 /**Setup all the in tag references of the html */
 export function setTheTable(app, data) {
   setComponents(app.coockbook);
-  setHtmlReferences(app, data);
+  setupReferences(app);
 }
 /**set the interface components */
 function setComponents(cookbook) {
@@ -43,26 +47,67 @@ function setComponents(cookbook) {
   }
 }
 /**convert html data references to value */
-function setHtmlReferences(app, data) {
-  if (app && data) {
+function setupReferences(app) {
+  if (app) {
     setupArray();
   }
+
+  function setupModels() {
+
+  }
   function setupArray() {
-    let _elements = Array.from(app.target.querySelectorAll("[" + custommapper.get(svenum.commands.for) + "]"));
+    let _elements = Array.from(app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.for) + "]"));
     for (let i = 0; i < _elements.length; i++) {
       try {
-        let _key = getArrayParameter(_elements[i].getAttribute(custommapper.get(svenum.commands.for)), "key");
+        let _key = getArrayParameter(_elements[i].getAttribute(attrmapper.get(svenum.commands.for)), "key");
         let _name = buildName(app.name, _key, i.toString());
-        let _template = _elements[i].innerHTML;
-        let _tags = _template.match(svenum.regex.reference);
-        _elements[i].setAttribute(custommapper.get(svenum.commands.name), _name);
         app.references.push({
           type: svenum.commands.for,
           key: _key,
           name: _name,
-          template: _template,
-          tag: _tags
+          template: _elements[i].innerHTML,
+          tag: _template.match(svenum.regex.reference)
         });
+        _elements[i].setAttribute(attrmapper.get(svenum.commands.name), _name);
+      } catch (ex) {
+        console.error(getErrorMessage(svenum.errortype.methodnotallowed, "SVE7").format(ex));
+      }
+    }
+  }
+  function setupIf() {
+    let _elements = Array.from(app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.if) + "]"));
+    for (let i = 0; i < _elements.length; i++) {
+      try {
+        app.references.push({
+          type: svenum.commands.if,
+          condition: _elements[i].getAttribute(attrmapper.get(svenum.commands.if)),
+          name: buildName(app.name, "if", i.toString()),
+          template: _elements[i].outerHTML,
+          tag: getConditionalBlock()
+        });
+        _elements[i].setAttribute(attrmapper.get(svenum.commands.name), _name);
+
+        function getConditionalBlock() {
+          let _conditions = [];
+          let _next = _elements[i].nextElementSibling;
+          while (_next && !_next.hasAttribute(attrmapper.get(svenum.commands.if))) {
+            if (_node_condition.hasAttribute(attrmapper.get(svenum.commands.elseif))) {
+              _conditions.push({
+                type: svenum.commands.elseif,
+                condition: _next.getAttribute(attrmapper.get(svenum.commands.elseif)),
+                template: _next.outerHTML
+              });
+            }
+            if (_node_condition.hasAttribute(attrmapper.get(svenum.commands.elseif))) {
+              _conditions.push({
+                type: svenum.commands.else,
+                template: _next.outerHTML
+              });
+            }
+            _next = _next.nextElementSibling;
+          }
+          return _conditions;
+        }
       } catch (ex) {
         console.error(getErrorMessage(svenum.errortype.methodnotallowed, "SVE7").format(ex));
       }
@@ -81,11 +126,11 @@ export function createOnChangeProxy(onChange, target, parent) {
       return item;
     },
     set(target, property, newValue) {
-      target[property] = newValue
-      let _prop = getDataType(target) == svenum.datatypes.array ? parent : property;
-      let _val = getDataType(target) == svenum.datatypes.array ? target : newValue;
-      onChange(target, _prop, _val)
-      return true
+      target[property] = newValue;
+      onChange(target,
+        getDataType(target) == svenum.datatypes.array ? parent : property,
+        getDataType(target) == svenum.datatypes.array ? target : newValue);
+      return true;
     },
   });
 }
@@ -107,13 +152,13 @@ export function renderHtmlReference(app, reference, value) {
   }
 
   function stampArray() {
-    let _nodes = app.target.querySelectorAll("[" + custommapper.get(svenum.commands.name) + "='" + reference.name + "']");
+    let _nodes = app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.name) + "='" + reference.name + "']");
     for (const node of _nodes) {
       node.innerHTML = "";
-      let _prefix = getArrayParameter(node.getAttribute(custommapper.get(svenum.commands.for)), "prefix");
+      let _prefix = getArrayParameter(node.getAttribute(attrmapper.get(svenum.commands.for)), "prefix");
       let _value = duplicateArray(value);
-      _value = sort(_value, node.getAttribute(custommapper.get(svenum.commands.sort)), _prefix);
-      _value = filter(_value, node.getAttribute(custommapper.get(svenum.commands.filter)), _prefix);
+      _value = sort(_value, node.getAttribute(attrmapper.get(svenum.commands.sort)), _prefix);
+      _value = filter(_value, node.getAttribute(attrmapper.get(svenum.commands.filter)), _prefix);
       for (let i = 0; i < _value.length; i++) {
         let _html = reference.template;
         for (const t of reference.tag) {
@@ -177,10 +222,10 @@ export function applyTagEvent(app) {
     }
   }
   function setupEventShorts() {
-    let _items = app.target.querySelectorAll("[" + custommapper.get(svenum.commands.on) + "]");
+    let _items = app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.on) + "]");
     if (_items.length > 0) {
       for (let i = 0; i < _items.length; i++) {
-        let _attribute = _items[i].getAttribute(custommapper.get(svenum.commands.on));
+        let _attribute = _items[i].getAttribute(attrmapper.get(svenum.commands.on));
         if (_attribute) {
           let _split = _attribute.split(" -> ");
           switch (_split[0]) {
@@ -203,10 +248,10 @@ export function renderValues(app, data) {
   app.target.innerHTML = app.target.innerHTML.replace(svenum.regex.reference, (match) => app.format(propByString(data, match.replace("{{ ", "").replace(" }}", ""))));
 }
 export function renderIf(app) {
-  let _elements = Array.from(app.target.querySelectorAll("[" + custommapper.get(svenum.commands.if) + "]"));
+  let _elements = Array.from(app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.if) + "]"));
   for (const item of _elements) {
     try {
-      let _attr = item.getAttribute(custommapper.get(svenum.commands.if)).split(" -> ");
+      let _attr = item.getAttribute(attrmapper.get(svenum.commands.if)).split(" -> ");
       if (_attr.length == 1) {
         renderItem(item, _attr[0]);
       }
@@ -233,17 +278,17 @@ export function renderIf(app) {
     let _visible = runFunctionByName("return " + condition, null, app);
     let _next = item.nextElementSibling;
     if (!_visible) item.remove();
-    while (_next && !_next.hasAttribute(custommapper.get(svenum.commands.if))) {
+    while (_next && !_next.hasAttribute(attrmapper.get(svenum.commands.if))) {
       let _node_condition = _next;
       let _remove = false;
 
-      if (_node_condition.hasAttribute(custommapper.get(svenum.commands.elseif))) {
-        let _else_attr = _node_condition.getAttribute(custommapper.get(svenum.commands.elseif));
+      if (_node_condition.hasAttribute(attrmapper.get(svenum.commands.elseif))) {
+        let _else_attr = _node_condition.getAttribute(attrmapper.get(svenum.commands.elseif));
         let _temp_visible = runFunctionByName("return " + _else_attr, null, app);
         _remove = _visible || !_temp_visible;
         _visible = _visible ? _visible : _temp_visible;
       } else {
-        _remove = _visible && _node_condition.hasAttribute(custommapper.get(svenum.commands.else));
+        _remove = _visible && _node_condition.hasAttribute(attrmapper.get(svenum.commands.else));
       }
 
       _next = _next.nextElementSibling;
@@ -251,15 +296,23 @@ export function renderIf(app) {
     }
   }
 }
+export function renderModels(app, data) {
+  let _elements = app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.model) + "]");
+  for (const item of _elements) {
+    let _input = item.tagName == "INPUT" ? item : item.getElementsByTagName("INPUT")[0];
+    if (_input) {
+      let _attr = _input.getAttribute(attrmapper.get(svenum.commands.model));
+      _input.value = propByString(data, _attr);
+      let _editor = (value) => { app.dataset[_attr.split(".")] = value; };
+      _input.removeEventListener("keyup", function (e) { _editor(e.target.value); });
+      _input.addEventListener("keyup", function (e) { _editor(e.target.value); });
+    }
+  }
+}
+
 //#endregion
 
 //#region SUPPORT
-/**Elaborate tag and return object path stored inside */
-function getPathFromTag(tag, prefix) {
-  try {
-    return tag.replace("{{ ", "").replace(" }}", "").replace(prefix + ".", "");
-  } catch (ex) { throw ex; }
-}
 /**Get prefixes used in reading array by html tag */
 function getArrayParameter(attribute, type) {
   let _split = attribute.split(" in ");
@@ -274,5 +327,71 @@ function getArrayParameter(attribute, type) {
 /**Build reference name */
 function buildName(app, key, iteration = null) {
   return app + "-" + key + (iteration != null ? iteration : "");
+}
+
+/**Return value of expression or property from app's dataset. Refer to app with $.*/
+export function renderBrackets(content, app) {
+return content.replace(svenum.regex.brackets, (match) => renderContent(app, match.trim())).replace(/\{\{|\}\}/gm, "");
+  function renderContent(app, content){
+    let _val = propByString(app.dataset, content);
+    if (_val == null || _val == undefined) _val = runFunctionByName("return " + content, null, app);
+    return app.format(_val);
+  }
+}
+/**Return temporary DOM element that rplace reference while rendering*/
+export function buildTempReference(id) {
+  let _ref = document.createElement("div");
+  _ref.setAttribute("hidden", "hidden");
+  _ref.setAttribute("id", id);
+  return _ref;
+}
+export function replaceHtmlNode(node, replace) { 
+  if (node && replace) {
+    if(getDataType(node) == svenum.datatypes.array && node.length > 0){
+      node[0].before(replace);
+      for(let item of node){
+        item.remove();
+      }
+    }else{
+      node.replaceWith(replace); 
+    }
+    return true;
+  }
+  return false;
+}
+/**Get list of app's dataset properties that are included in the script */
+export function getPropertiesFromScript(script) {
+  let _props = [];
+  let _match;
+  let _check_single_reference = script.match(/(?:[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/gm);
+  if (_check_single_reference && _check_single_reference.length > 1) {
+    while ((_match = svenum.regex.app.exec(script)) !== null) {
+      _props.push(_match[0].replace("$.", ""));
+    }
+    return _props;
+  } else {
+    return [script.replace("$.", "")];
+  }
+}
+/**Return all app's dataset properties that are included in the html section */
+export function findPropertiestIntoHtml(vnode) {
+  let _props = [];
+  let _match;
+  while ((_match = svenum.regex.brackets.exec(vnode.outerHTML)) !== null) {
+    let _matches = getPropertiesFromScript(_match[0].trim());
+    for (const item of _matches) {
+
+      let _exist = _props.includes(item);
+      let _is_prefix = vnode.type == svenum.commands.for && item.includes(vnode.attributes[0]);
+      let _index = item == ":index";
+
+      if (!_exist && !_is_prefix && !_index) _props.push(item);
+    }
+  }
+  return _props;
+}
+
+export function cleanScriptReferences(script, param, prefix, index) {
+    return script.replace(new RegExp(prefix), "$." + param + "[" + index + "]");
 }
 //#endregion

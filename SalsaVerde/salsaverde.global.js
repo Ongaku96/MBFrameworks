@@ -91,13 +91,29 @@ window.openKiosk = (name) => {
 
 //#region EXTENSIONS
 /**Replace the '{n}' characters in string with the given list of string*/
-String.prototype.format = function (...args) {
-    a = this;
-    for (var k in args) {
-        a = a.replace(new RegExp("\\{" + k + "\\}", "g"), args[k]);
-    }
-    return a;
-};
+
+Object.defineProperty(String.prototype, "format", {
+    value: function (...args) {
+        a = this.toString();
+        for (let k = 0; k < args.length; k++) {
+            let _replace = args[k];
+            a = a.replace(new RegExp(`\\{${k}\\}`), _replace);
+        }
+        return a;
+    },
+    writable: true,
+    configurable: true,
+});
+// String.prototype.format = function (...args) {
+//     if (this && this.length > 0) {
+//         a = this.toArray().join();
+//         for (let k = 0; k < args.length; k++) {
+//             a = a.replace(new RegExp("\\{" + k.toString() + "\\}"), args[k]);
+//         }
+//         return a;
+//     }
+//     return this;
+// };
 /**Escaper RegExp characters */
 String.prototype.escapeRegEx = function () {
     return this.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
@@ -123,9 +139,12 @@ function runFunctionByName(script, e, app) {
     return _function(e, app);
 }
 /**Get Property of object by string path */
-function propByString(obj, path) {
+function propByString(obj, path, value = undefined) {
     for (var i = 0, path = path.split('.'), len = path.length; i < len; i++) {
-        if (obj) obj = obj[path[i]];
+        if (obj) {
+            if (value != undefined && i == len - 2) obj[path[i]] = value;
+            obj = obj[path[i]];
+        }
     };
     return obj;
 };
@@ -136,8 +155,8 @@ function propByString(obj, path) {
  */
 function dynamicSort(property, desc) {
     return function (a, b) {
-        let _first = propByString(a, property) ? propByString(a, property) : a;
-        let _second = propByString(b, property) ? propByString(b, property) : b;
+        let _first = property ? propByString(a, property) : a;
+        let _second = property ? propByString(b, property) : b;
 
         if (isNaN(_first)) {
             if (desc) {
@@ -153,10 +172,33 @@ function dynamicSort(property, desc) {
             };
         };
     };
-};
-
+}
+/**Deep copy of array values copied by value and not by ref*/
 function duplicateArray(array) {
     return JSON.parse(JSON.stringify(array));
+}
+/**merge multiple array in one */
+function mergeArrays(...arrays) {
+    let _result = [];
+    for (const array of arrays) {
+        for (const item of array) {
+            if (!_result.includes(item)) {
+                _result.push(item);
+            }
+        }
+    }
+    return _result;
+}
+/**get unique ID */
+function uniqueID() {
+    return Math.floor(Math.random() * Date.now()).toString(36);
+}
+/**Elaborate tag and return object path stored inside */
+function getPathFromTag(tag, prefix = "") {
+    try {
+        if (prefix) tag = tag.replace(prefix + ".", "");
+        return tag.replace("{{", "").replace("}}", "").trim();
+    } catch (ex) { throw ex; }
 }
 
 const _string_constructor = "".constructor;
@@ -198,15 +240,23 @@ const svenum = {
     },
     /**List of useful regex */
     regex: {
+        /**match all integer and decimal values */
         numeric: /^(([0-9]*)|(([0-9]*)[\.\,]([0-9]*)))$/,
+        /**match all textual values */
         textual: /\d/,
+        /**match email format */
         mail: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+        /**match multiple email format */
         multiplemail:
             /^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)+([a-zA-Z0-9\-\.]+)+([;]([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)+([a-zA-Z0-9\-\.]+))*$/,
+        /**match date format */
         date: /(^(\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1})[\/|\-|\.]+\d{4})|(^(\d{4}[\/|\-|\.]+\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1}))$/,
         dateformat:
             /([0][1-9]|[1][0-9]|[2][0-9]|[3][0-1])[/|.|-|,|;]([0][1-9]|[1][0-2])[/|.|-|,|;](([1][9][0-9]{2}|[2][0-9]{3})|(\d{2}))/,
-        reference: /{{\s[a-zA-Z0-9._]+\s}}/gm,
+        reference: /{{[\s]?[a-zA-Z0-9._]+[\s]?}}/gm,
+        /**match in tag script reference */
+        brackets: /(?<=\{\{)(.*?)(?=\}\})/gm,
+        /**match property path into script references */
         app: /(?:\$\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g
     },
     /**Enumerator for the file size formatter */
@@ -293,7 +343,7 @@ const svenum = {
     },
     /**List of supported inline html commands */
     commands: {
-        value: 0,
+        model: 0,
         for: 1,
         on: 2,
         name: 3,

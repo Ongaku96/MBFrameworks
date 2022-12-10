@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Band Companion</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
+    <style>
+        .general {
+            padding: .3rem;
+            display: flex;
+            justify-content: center;
+            font-family: "Audiowide", sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="myband" class="general">
+        <h1 sv-model="title"></h1>
+    </div>
+    <script src="../SalsaVerde/salsaverde.global.js"></script>
+    <script type="text/javascript" name="setup">
+        var app;
+        openKiosk("myband").reserve({
+            data: {
+                title: "Band Companion",
+                groups: [],
+                events: []
+            }
+        }).globalize({ app });
+    </script>
+</body>
+
+</html>
