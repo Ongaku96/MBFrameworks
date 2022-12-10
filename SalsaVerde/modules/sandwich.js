@@ -52,7 +52,7 @@ export default class Sandwich {
 
         /**setup interaction data proxy */
         function setupProxy() {
-            return createOnChangeProxy(() => {
+            return __setup.createOnChangeProxy(() => {
                 _me.flash();
             }, _me.#_data);
         }
