@@ -93,10 +93,10 @@ export class vNode {
                 let _item = prepareAttribute(attr);
                 switch (_item.command) {
                     case attrmapper.get(svenum.commands.if): _if.push(new svIf(this)); break;
+                    case attrmapper.get(svenum.commands.bind): _on.push(new svBind(this, _item)); break;
                     case attrmapper.get(svenum.commands.for): _for.push(new svFor(this)); break;
                     case attrmapper.get(svenum.commands.model): _model.push(new svModel(this)); break;
                     case attrmapper.get(svenum.commands.on): _on.push(new svOn(this, _item)); break;
-                    case attrmapper.get(svenum.commands.bind): _on.push(new svBind(this, _item)); break;
                 }
             }
             this.commands = mergeArrays(_if, _for, _model, _on);
@@ -201,33 +201,81 @@ export class svModel extends command {
     }
     constructor(vnode) {
         super(vnode, svenum.commands.model);
+        this.value = this.reference.getAttribute("value");
         if (this.input) this.reference.setAttribute("trigger", "notset");
     }
     render(app) {
+        let _me = this;
         try {
             let _value = propByString(app.dataset, this.attribute);
-            switch (this.backup.nodeName) {
-                case "INPUT": case "TEXTAREA":
-                    if (this.reference.value != _value) this.reference.value = _value;
-                    refreshValue(this.reference, this.attribute);
-                    break;
-                case "SELECT":
-                    if (this.reference.selectedIndex != _value) this.reference.selectedIndex = _value;
-                    refreshValue(this.reference, this.attribute);
-                    break;
-                default:
-                    this.reference.innerText = app.format(_value);
-                    this.reference.removeAttribute(attrmapper.get(this.command));
-                    break;
-            }
+            if (_value != null)
+                switch (this.backup.nodeName) {
+                    case "INPUT": case "TEXTAREA":
+                        let _type = this.reference.getAttribute("type");
+                        switch (_type) {
+                            case "checkbox": case "radio":
+                                let _checked = this.value != null ?
+                                    (getDataType(_value) == svenum.datatypes.array ? _value.includes(this.value) : _value == this.value) : _value;
+                                this.reference.checked = _checked;
+                                break;
+                            default: this.reference.value = _value; break;
+                        }
+                        refreshValue(this.reference, this.attribute);
+                        break;
+                    case "SELECT":
+                        this.reference.value = _value;
+                        refreshValue(this.reference, this.attribute);
+                        break;
+                    default:
+                        if (this.reference.contentEditable || this.reference.designMode == "on") {
+                            refreshValue(this.reference, this.attribute);
+                        }
+                        this.reference.innerHTML = app.format(_value);
+                        break;
+                }
         } catch (ex) {
             console.error(getErrorMessage(svenum.errortype.methodnotallowed, "SVE8", "<model> " + this.attribute + " - " + ex.message));
         }
 
         function refreshValue(reference, props) {
             if (reference.hasAttribute("trigger")) {
-                reference.addEventListener("keyup", function (e) {
-                    app.dataset[props] = this.value;
+                reference.addEventListener("input", function (evt) {
+                    let _type = this.getAttribute("type");
+                    let _nodename = this.nodeName;
+                    switch (_nodename) {
+                        case "SELECT":
+                            if (getDataType(app.dataset[props]) == svenum.datatypes.array) {
+                                if (app.dataset[props].includes(this.value)) {
+                                    app.dataset[props] = app.dataset[props].filter(e => e !== this.value);
+                                } else {
+                                    app.dataset[props].push(this.value);
+                                }
+                            } else {
+                                app.dataset[props] = this.value;
+                            }
+                            break;
+                        default:
+                            switch (_type) {
+                                case "checkbox": case "radio":
+                                    if (_me.value) {
+                                        if (getDataType(app.dataset[props]) == svenum.datatypes.array) {
+                                            if (_type == "radio") app.dataset[props] = [];
+                                            if (app.dataset[props].includes(_me.value)) {
+                                                app.dataset[props] = app.dataset[props].filter(e => e !== _me.value);
+                                            } else {
+                                                app.dataset[props].push(_me.value);
+                                            }
+                                        } else {
+                                            app.dataset[props] = this.checked ? _me.value : "";
+                                        }
+                                    } else {
+                                        app.dataset[props] = this.checked;
+                                    }
+                                    break;
+                                default: app.dataset[props] = this.value; break;
+                            }
+                            break;
+                    }
                 });
                 reference.removeAttribute("trigger");
             }
@@ -296,8 +344,8 @@ export class svFor extends command {
             this.sort = this.reference.getAttribute(attrmapper.get(svenum.commands.sort));
             this.reference.removeAttribute(attrmapper.get(svenum.commands.filter));
             this.reference.removeAttribute(attrmapper.get(svenum.commands.sort));
-            this.template = this.reference.outerHTML;
             super.setup();
+            this.template = this.reference.outerHTML;
         } catch (ex) {
             console.error(getErrorMessage(svenum.errortype.methodnotallowed, "SVE7", "<for> " + ex.message));
         }
@@ -337,7 +385,7 @@ export class svFor extends command {
         function filter(condition, item, i) {
             if (condition) {
                 // let _function = "return " + cleanScriptReferences(condition.replace(new RegExp(":index"), i), _me.attributes[1], _me.attributes[0], i);
-                let _function = "return " + condition.replace(new RegExp(":index"), i).replace( new RegExp(_me.attributes[0], "g"), "this");
+                let _function = "return " + condition.replace(new RegExp(":index"), i).replace(new RegExp(_me.attributes[0], "g"), "this");
                 return runFunctionByString(_function, item);
             }
             return true;

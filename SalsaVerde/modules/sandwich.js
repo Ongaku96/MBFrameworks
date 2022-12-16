@@ -7,10 +7,6 @@ const default_formatter = [
         stamp: (value) => value.toLocaleDateString()
     },
     {
-        type: svenum.datatypes.string,
-        stamp: (value) => value.replace("\n", "<br />")
-    },
-    {
         type: svenum.datatypes.number,
         stamp: (value) => value.toString()
     }

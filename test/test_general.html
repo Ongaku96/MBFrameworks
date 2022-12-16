@@ -9,6 +9,10 @@
             background-color: gainsboro;
         }
 
+        label {
+            font-size: .6em;
+        }
+
         #app_test {
             display: flex;
             flex-wrap: wrap;
@@ -16,9 +20,8 @@
         }
 
         section {
-            flex-grow: 1;
             display: flex;
-            flex-direction: column; 
+            flex-direction: column;
             justify-content: flex-start;
             padding: 1rem;
             margin: .5rem;
@@ -26,12 +29,9 @@
             border-radius: 8px;
             background-color: whitesmoke;
         }
-        section h5{
-            flex-grow: unset;
-        }
 
-        section * {
-            flex-grow: 1;
+        section h5 {
+            flex-grow: unset;
         }
 
         input {
@@ -76,18 +76,48 @@
         <section>
             <h5>sv-model</h5>
             <label sv-model="titolo" sv-bind:for="id"></label>
-            <input :id="id" type="text" sv-model="titolo"></input>
+            <p>{{data}}</p>
+        </section>
+        <section>
+            <h5>INPUT text</h5>
+            <div><input :id="id" type="text" sv-model="titolo"></input></div>
+        </section>
+        <section>
+            <h5>INPUT multiline</h5>
+            <span>Multiline message: </span>
+            <p style="white-space: pre-line;">{{message}}</p>
+            <textarea sv-model="message" placeholder="inserisci un testo su più righe" rows="5"></textarea>
+        </section>
+        <section>
+            <h5>INPUT checkbox</h5>
+            <label>Picked: {{picked}}</label>
+            <br>
+            <div>
+                <label for="cbx_primo">Primo</label>
+                <input id="cbx_primo" type="checkbox" sv-model="picked" value="Alberto" />
+            </div>
+            <div>
+                <label for="cbx_secondo">Secondo</label>
+                <input id="cbx_secondo" type="checkbox" sv-model="picked" value="Piero" />
+            </div>
+        </section>
+        <section>
+            <h5>INPUT select</h5>
+            <label for="cbx_secondo">Selected Item: {{selected}}</label>
+            <select sv-model="selected" multiple>
+                <option disabled value="">Seleziona un'opzione</option>
+                <option sv-for="item in oggetti">{{item.name}}</option>
+            </select>
         </section>
         <section>
             <h5>sv-on & brackets</h5>
             <button type="button" @click="increment">Il conto è: {{count}}</button>
-            <p>{{data}}</p>
         </section>
         <section>
             <h5>sv-if/elseif/else</h5>
-            <div sv-if="$.first">Primo Elemento</div>
-            <div sv-elseif="$.second">Secondo Elemento</div>
-            <div sv-else>Terzo Elemento</div>
+            <div sv-if="$.first">Primo</div>
+            <div sv-elseif="$.second">Secondo</div>
+            <div sv-else>Terzo</div>
             <div>
                 <button type="button" @click="$.first = true; $.second = false;">Primo</button>
                 <button type="button" @click="$.first = false; $.second = true;">Secondo</button>
@@ -111,7 +141,8 @@
                 <button type="button" sv-on:click="actions.removeItem">Rimuovi Ultimo Elemento</button>
             </div>
             <ul>
-                <li sv-for="obj in oggetti" sv-filter="obj.id > 0" sv-sort="obj.id desc">{{ obj.id + ' - ' + obj.name }} {{count}}</li>
+                <li sv-for="obj in oggetti" sv-filter="obj.id > 0" sv-sort="obj.id desc">{{ obj.id + ' - ' + obj.name }}
+                    {{count}}</li>
             </ul>
         </section>
     </div>
@@ -132,11 +163,11 @@
                 id: "txt_modello",
                 titolo: "testo di prova",
                 oggetti: [
-                    { id: 0, name: "elemento", timestamp: _my_format.stamp(_today) },
-                    { id: 3, name: "elemento", timestamp: _my_format.stamp(_today) },
-                    { id: 5, name: "elemento", timestamp: _my_format.stamp(_today) },
-                    { id: 6, name: "elemento", timestamp: _my_format.stamp(_today) },
-                    { id: 11, name: "elemento", timestamp: _my_format.stamp(_today) }
+                    { id: 0, name: "elemento 1", timestamp: _my_format.stamp(_today) },
+                    { id: 3, name: "elemento 2", timestamp: _my_format.stamp(_today) },
+                    { id: 5, name: "elemento 3", timestamp: _my_format.stamp(_today) },
+                    { id: 6, name: "elemento 4", timestamp: _my_format.stamp(_today) },
+                    { id: 11, name: "elemento 5", timestamp: _my_format.stamp(_today) }
                 ],
                 lista: [
                     "elemento 1",
@@ -147,7 +178,10 @@
                 first: true,
                 second: false,
                 count: 0,
-                data: new Date()
+                data: new Date(),
+                message: "",
+                selected: [],
+                picked: []
             },
             instructions: {
                 actions: {
@@ -159,7 +193,7 @@
                         this.oggetti.pop();
                     }
                 },
-                increment(){
+                increment() {
                     this.count += 1;
                 }
             },
