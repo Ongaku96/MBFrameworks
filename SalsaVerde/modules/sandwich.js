@@ -24,7 +24,9 @@ export default class Sandwich {
         this.settings = {
             formatter: default_formatter
         };
+        this.state = svenum.staterecipe.heard;
         this.dataset = null;
+        this.instructions = null;
         this.cookbook = [];
         this.references = [];
         this.broccoli = new Broccoli();
@@ -32,23 +34,31 @@ export default class Sandwich {
     }
 
     //#region SETUP
-    setup(){
+    setup() {
         this.broccoli.boil(this);
+        console.log(this);
     }
     /**Setup all dynamic components into the app*/
     cook(forniture = null) {
         let _me = this;
-
+        this.state = svenum.staterecipe.cooking;
         setupData();
         this.flash();
         svglobal.store();
 
         /**Application setup */
         function setupData() {
-            _me.#_data = forniture && forniture.data ? forniture.data : null;
-            _me.cookbook = forniture && forniture.recipes ? forniture.recipes : null;
-            if (forniture) updateSettings(forniture.demands);
-            _me.dataset = setupProxy();
+            if (forniture) {
+                _me.#_data = forniture.data ? forniture.data : {};
+                _me.cookbook = forniture.recipes ? forniture.recipes : null;
+                if (forniture) updateSettings(forniture.demands);
+                _me.dataset = setupProxy();
+                if (forniture.instructions) {
+                    for (const param of Object.keys(forniture.instructions)) {
+                        _me.dataset[param] = forniture.instructions[param];
+                    }
+                }
+            }
 
             /**setup interaction data proxy */
             function setupProxy() {
@@ -153,34 +163,9 @@ class Broccoli {
     }
     serve(app, attr = null) {
         for (const child of this.children) {
-            child.render(app);
+            child.render(app, attr);
         }
-
-        // let _find_refs = (item, type) => {
-        //     let _has_attr = true;
-        //     if (attr) {
-        //         _has_attr = item.properties && item.properties.find(a => a == attr) != null;
-        //     }
-        //     return item.type == type && _has_attr;
-        // }
-        // let _if = this.children.filter(n => _find_refs(n, svenum.commands.if));
-        // let _for = this.children.filter(n => _find_refs(n, svenum.commands.for));
-        // let _model = this.children.filter(n => _find_refs(n, svenum.commands.model));
-        // let _on = this.children.filter(n => _find_refs(n, svenum.commands.on));
-        // for (const child of _if) {
-        //     child.render(app);
-        // }
-        // for (const child of _for) {
-        //     child.render(app);
-        // }
-        // for (const child of _model) {
-        //     child.render(app);
-        // }
-        // for (const child of _on) {
-        //     child.render(app);
-        // }
     }
-
 }
 
 //#region OBSOLETE

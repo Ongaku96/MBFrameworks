@@ -24,13 +24,136 @@ export const attrmapper = new Map([
   [svenum.commands.elseif, prefix + "elseif"],
   [svenum.commands.else, prefix + "else"],
   [svenum.commands.filter, prefix + "filter"],
-  [svenum.commands.sort, prefix + "sort"]
+  [svenum.commands.sort, prefix + "sort"],
+  [svenum.commands.bind, prefix + "bind"]
 ]);
 //#endregion
 
-//#region SETUP
+/**Create a Recoursive Proxy */
+export function createOnChangeProxy(onChange, target, parent) {
+  return new Proxy(target, {
+    get(target, property) {
+      const item = target[property];
+      let _type = getDataType(item);
+      if (item && (_type == svenum.datatypes.object || _type == svenum.datatypes.array)) {
+        if (getDataType(property) == svenum.datatypes.string && isNaN(property)) parent = property;
+        // if (_type == svenum.datatypes.object && target.hasOwnProperty(property)) parent = property;
+        return createOnChangeProxy(onChange, item, parent);
+      }
+      return item;
+    },
+    set(target, property, newValue) {
+      target[property] = newValue;
+      onChange(target,
+        getDataType(target) == svenum.datatypes.array ? parent : property,
+        getDataType(target) == svenum.datatypes.array ? target : newValue);
+      return true;
+    },
+  });
+}
+/**Return value of expression or property from app's dataset. Refer to app with $.*/
+export function renderBrackets(content, app, event = null, references = []) {
+  return content.replace(svenum.regex.brackets, (match) => elaborateContent(match.trim(), app, event, references, true)).replace(/\{\{|\}\}/gm, "");
+}
+/**Elaborate dynamic content from application data */
+export function elaborateContent(content, app, event = null, references = [], output = false) {
+  try {
+    for (const ref of references) {
+      if (compareKeys(ref, { prefix: "", value: "" })) {
+        content = content.replace(new RegExp("(?:" + ref.prefix + "(?:\.[a-zA-Z_$]+[\w$]*)*)", "g"), (e) => {
+          let _path = e.replace(ref.prefix + ".", "");
+          let _value = _path == e ? ref.value : propByString(ref.value, _path);
+          _value = app.format(_value);
+          return getDataType(_value) != svenum.datatypes.number ? "'" + _value + "'" : _value;
+        });
+      }
+    }
+    let _val = propByString(app.dataset, content);
+    if (_val == null || _val == undefined) _val = runFunctionByString((output ? "return " : "") + content, app.dataset, event);
+    if (getDataType(_val) == svenum.datatypes.function) return _val.call(app.dataset, event);
+    return app.format(_val);
+
+  } catch (ex) {
+    console.warn(ex);
+  }
+}
+/**Return temporary DOM element that rplace reference while rendering*/
+export function buildTempReference(id) {
+  let _ref = document.createElement("div");
+  _ref.setAttribute("hidden", "hidden");
+  _ref.setAttribute("id", id);
+  return _ref;
+}
+/**Replace a DOM element with another element */
+export function replaceHtmlNode(node, replace) {
+  if (node && replace) {
+    if (getDataType(node) == svenum.datatypes.array && node.length > 0) {
+      node[0].before(replace);
+      for (let item of node) {
+        item.remove();
+      }
+    } else {
+      node.replaceWith(replace);
+    }
+    node = replace;
+    return true;
+  }
+  return false;
+}
+/**Get list of app's dataset properties that are included in the script */
+export function getPropertiesFromScript(script) {
+  let _props = [];
+  let _match;
+  let _check_single_reference = script.match(/(?:[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/gm);
+  if (_check_single_reference && _check_single_reference.length > 1) {
+    while ((_match = svenum.regex.appdata.exec(script)) !== null) {
+      _props.push(_match[0].replace("$.", ""));
+    }
+    return _props;
+  } else {
+    return [script.replace("$.", "")];
+  }
+}
+/**Return all app's dataset properties that are included in the html section */
+export function findPropertiestIntoHtml(vnode) {
+  let _props = [];
+  let _match;
+  while ((_match = svenum.regex.brackets.exec(vnode.outerHTML)) !== null) {
+    let _matches = getPropertiesFromScript(_match[0].trim());
+    for (const item of _matches) {
+
+      let _exist = _props.includes(item);
+      let _is_prefix = vnode.type == svenum.commands.for && item.includes(vnode.attributes[0]);
+      let _index = item == ":index";
+
+      if (!_exist && !_is_prefix && !_index) _props.push(item);
+    }
+  }
+  return _props;
+}
+/**Replace all array references with app path */
+export function cleanScriptReferences(script, param, prefix, index) {
+  while (script.includes(prefix)) {
+    script = script.replace(prefix, "$." + param + "[" + index + "]");
+  }
+  return script;
+}
+/**Execute a javascript function by name */
+export function runFunctionByString(script, context, evt) {
+  try {
+    var _script = script.replace(/'/g, "\"").replace(svenum.regex.appdata, (match) => {
+      let _formatted_match = match.slice(1);
+      return `this${_formatted_match}`;
+    });
+    let _function = new Function("evt", _script);
+    return _function.call(context, evt);
+  } catch (ex) {
+    throw ex;
+  }
+}
+//#region DEPRECATED
 /**Setup all the in tag references of the html */
-export function setTheTable(app, data) {
+function setTheTable(app, data) {
   setComponents(app.coockbook);
   setupReferences(app);
 }
@@ -114,37 +237,14 @@ function setupReferences(app) {
     }
   }
 }
-/**Create a Recoursive Proxy */
-export function createOnChangeProxy(onChange, target, parent) {
-  return new Proxy(target, {
-    get(target, property) {
-      const item = target[property];
-      if (item && (getDataType(item) == svenum.datatypes.object || getDataType(item) == svenum.datatypes.array)) {
-        parent = property;
-        return createOnChangeProxy(onChange, item, parent);
-      }
-      return item;
-    },
-    set(target, property, newValue) {
-      target[property] = newValue;
-      onChange(target,
-        getDataType(target) == svenum.datatypes.array ? parent : property,
-        getDataType(target) == svenum.datatypes.array ? target : newValue);
-      return true;
-    },
-  });
-}
-//#endregion
-
-//#region RENDER
 /**Refresh the element tag event */
-export function addTagEventListener(item, event, script, app = null) {
+function addTagEventListener(item, event, script, app = null) {
   let _func = (e) => { runFunctionByName(script, e, app); };
   item.removeEventListener(event, _func);
   item.addEventListener(event, _func);
 }
 /**render html data reference */
-export function renderHtmlReference(app, reference, value) {
+function renderHtmlReference(app, reference, value) {
   if (value != null) {
     switch (reference.type) {
       case svenum.commands.for: stampArray(); break;
@@ -191,7 +291,7 @@ export function renderHtmlReference(app, reference, value) {
   }
 }
 /**Get all framework click tag into the app and set the events */
-export function applyTagEvent(app) {
+function applyTagEvent(app) {
   if (app.target) {
     setupOnSelector();
     setupEventShorts();
@@ -244,10 +344,10 @@ export function applyTagEvent(app) {
   }
 }
 /**render html references of data value */
-export function renderValues(app, data) {
+function renderValues(app, data) {
   app.target.innerHTML = app.target.innerHTML.replace(svenum.regex.reference, (match) => app.format(propByString(data, match.replace("{{ ", "").replace(" }}", ""))));
 }
-export function renderIf(app) {
+function renderIf(app) {
   let _elements = Array.from(app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.if) + "]"));
   for (const item of _elements) {
     try {
@@ -296,7 +396,7 @@ export function renderIf(app) {
     }
   }
 }
-export function renderModels(app, data) {
+function renderModels(app, data) {
   let _elements = app.target.querySelectorAll("[" + attrmapper.get(svenum.commands.model) + "]");
   for (const item of _elements) {
     let _input = item.tagName == "INPUT" ? item : item.getElementsByTagName("INPUT")[0];
@@ -309,10 +409,6 @@ export function renderModels(app, data) {
     }
   }
 }
-
-//#endregion
-
-//#region SUPPORT
 /**Get prefixes used in reading array by html tag */
 function getArrayParameter(attribute, type) {
   let _split = attribute.split(" in ");
@@ -328,70 +424,27 @@ function getArrayParameter(attribute, type) {
 function buildName(app, key, iteration = null) {
   return app + "-" + key + (iteration != null ? iteration : "");
 }
-
-/**Return value of expression or property from app's dataset. Refer to app with $.*/
-export function renderBrackets(content, app) {
-return content.replace(svenum.regex.brackets, (match) => renderContent(app, match.trim())).replace(/\{\{|\}\}/gm, "");
-  function renderContent(app, content){
-    let _val = propByString(app.dataset, content);
-    if (_val == null || _val == undefined) _val = runFunctionByName("return " + content, null, app);
-    return app.format(_val);
-  }
-}
-/**Return temporary DOM element that rplace reference while rendering*/
-export function buildTempReference(id) {
-  let _ref = document.createElement("div");
-  _ref.setAttribute("hidden", "hidden");
-  _ref.setAttribute("id", id);
-  return _ref;
-}
-export function replaceHtmlNode(node, replace) { 
-  if (node && replace) {
-    if(getDataType(node) == svenum.datatypes.array && node.length > 0){
-      node[0].before(replace);
-      for(let item of node){
-        item.remove();
+/**Run attribute function passing by in app stored functions */
+function runAttrFunction(content, event, app, references = []) {
+  try {
+    for (const ref of references) {
+      if (compareKeys(ref, { prefix: "", value: "" })) {
+        content = content.replace(new RegExp("(?:" + ref.prefix + "(?:\.[a-zA-Z_$]+[\w$]*)*)", "gi"), (e) => {
+          let _path = e.replace(ref.prefix + ".", "");
+          let _value = _path == e ? ref.value : propByString(ref.value, _path);
+          _value = app.format(_value);
+          return getDataType(_value) != svenum.datatypes.number ? "'" + _value + "'" : _value;
+        });
       }
-    }else{
-      node.replaceWith(replace); 
     }
-    return true;
-  }
-  return false;
-}
-/**Get list of app's dataset properties that are included in the script */
-export function getPropertiesFromScript(script) {
-  let _props = [];
-  let _match;
-  let _check_single_reference = script.match(/(?:[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/gm);
-  if (_check_single_reference && _check_single_reference.length > 1) {
-    while ((_match = svenum.regex.app.exec(script)) !== null) {
-      _props.push(_match[0].replace("$.", ""));
+    let _function = propByString(app.dataset, content);
+    if (_function) {
+      _function.call(app.dataset, event);
+    } else {
+      runFunctionByName(content, event, app);
     }
-    return _props;
-  } else {
-    return [script.replace("$.", "")];
+  } catch (ex) {
+    console.warn(ex);
   }
-}
-/**Return all app's dataset properties that are included in the html section */
-export function findPropertiestIntoHtml(vnode) {
-  let _props = [];
-  let _match;
-  while ((_match = svenum.regex.brackets.exec(vnode.outerHTML)) !== null) {
-    let _matches = getPropertiesFromScript(_match[0].trim());
-    for (const item of _matches) {
-
-      let _exist = _props.includes(item);
-      let _is_prefix = vnode.type == svenum.commands.for && item.includes(vnode.attributes[0]);
-      let _index = item == ":index";
-
-      if (!_exist && !_is_prefix && !_index) _props.push(item);
-    }
-  }
-  return _props;
-}
-
-export function cleanScriptReferences(script, param, prefix, index) {
-    return script.replace(new RegExp(prefix), "$." + param + "[" + index + "]");
 }
 //#endregion

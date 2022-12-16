@@ -4,6 +4,44 @@
 <head>
     <link rel="stylesheet" href="../SalsaVerde/bundle.css" />
     <style>
+        body {
+            font-size: 32px;
+            background-color: gainsboro;
+        }
+
+        #app_test {
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+        }
+
+        section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column; 
+            justify-content: flex-start;
+            padding: 1rem;
+            margin: .5rem;
+            border: solid 1px lightgray;
+            border-radius: 8px;
+            background-color: whitesmoke;
+        }
+        section h5{
+            flex-grow: unset;
+        }
+
+        section * {
+            flex-grow: 1;
+        }
+
+        input {
+            font-size: 1rem;
+        }
+
+        button {
+            font-size: 1rem;
+        }
+
         .usato {
             background-color: darkgrey;
         }
@@ -34,87 +72,103 @@
 </head>
 
 <body>
-    <div id="myapp">
-        {{tavolo.zampe}}
-        <h1 class="{{ $.conto % 2 != 0 ? 'txt-blue' : 'txt-black' }}" sv-model="title"></h1>
-        <p class="txt-gray">{{ subtitle }}</p>
-        <input type="text" placeholder="sottotitolo" sv-model="title" />
-        <div style="display:flex; flex-direction: row;">
-            <p sv-model="data">{{ data }}</p>
-        </div>
-        <button sv-on="click -> setAlert('messaggio da evento')"><span sv-model="tasto"></span></button>
-        <div name="ciccio" sv-on="click -> changeTitle(e);"
-            style="padding:1rem; margin:.5rem; cursor: pointer; background-color: blue; color: lightgray;">switch title
-        </div>
-        <button sv-on="click -> $.conto += 1"> conto dinamico: <span sv-model="conto"></span></button>
-        <br />
-        <br />
-        <button sv-on="click -> addItem()">aggiungi</button>
-        <button sv-on="click -> removeLast()">rimuovi</button>
-        <div style="display:flex; flex-direction:row;">
-            <ul sv-if="!($.conto % 2)">
-                <li sv-for="item in lista" sv-sort="item.id desc" data-value="{{ item.id }}" name="{{ :index }}">{{ item.name }}</li>
+    <div id="app_test">
+        <section>
+            <h5>sv-model</h5>
+            <label sv-model="titolo" sv-bind:for="id"></label>
+            <input :id="id" type="text" sv-model="titolo"></input>
+        </section>
+        <section>
+            <h5>sv-on & brackets</h5>
+            <button type="button" @click="increment">Il conto è: {{count}}</button>
+            <p>{{data}}</p>
+        </section>
+        <section>
+            <h5>sv-if/elseif/else</h5>
+            <div sv-if="$.first">Primo Elemento</div>
+            <div sv-elseif="$.second">Secondo Elemento</div>
+            <div sv-else>Terzo Elemento</div>
+            <div>
+                <button type="button" @click="$.first = true; $.second = false;">Primo</button>
+                <button type="button" @click="$.first = false; $.second = true;">Secondo</button>
+                <button type="button" @click="$.first = false; $.second = false;">Terzo</button>
+            </div>
+        </section>
+        <section>
+            <h5>sv-for simple</h5>
+            <div>
+                <button type="button" sv-on:click="$.lista.push('test nuovo elemento')">Aggiungi Elemento</button>
+                <button type="button" sv-on:click="$.lista.pop()">Rimuovi Ultimo Elemento</button>
+            </div>
+            <br />
+            <br />
+            <div sv-for="item in lista" sv-filter=":index % 2 == 0">{{ item }} - {{ :index }}</div>
+        </section>
+        <section>
+            <h5>sv-for objects</h5>
+            <div>
+                <button type="button" sv-on:click="actions.addItem">Aggiungi Elemento</button>
+                <button type="button" sv-on:click="actions.removeItem">Rimuovi Ultimo Elemento</button>
+            </div>
+            <ul>
+                <li sv-for="obj in oggetti" sv-filter="obj.id > 0" sv-sort="obj.id desc">{{ obj.id + ' - ' + obj.name }} {{count}}</li>
             </ul>
-            <p style="margin: 1rem;" sv-elseif="$.conto == 3">prova di continuità<br /> della logica if-else</p>
-            <ul sv-else>
-                <li sv-for="item in semplice" sv-sort="item">{{ item }} {{ :index }}</li>
-            </ul>
-        </div>
-        <ol>
-            <li sv-for="item in lista" sv-filter="(item.id + $.conto) % 2 == 0">{{ item.name }} - {{ $.conto }}</li>
-        </ol>
-        <div>
-            <span class="chip" sv-for="item in semplice" sv-sort="item">{{ item }}</span>
-        </div>
-
-        <!-- <div class="usato" style="border: solid 1px black; border-radius: 8px; padding: 1rem; margin: 1rem;">
-            <h1>Il nostro tavolo</h1>
-            <p><strong>tipologia di copertura: </strong><span sv-model="tavolo.copertura"></span></p>
-            <p><strong>n° zampe: </strong><span sv-model="tavolo.zampe"></span></p>
-            <button sv-on="click -> $.tavolo.nuovo = !$.tavolo.nuovo">
-                <span sv-if="$.tavolo.nuovo">USA</span>
-                <span sv-else>RINNOVA</span>
-            </button>
-        </div> -->
+        </section>
     </div>
     <script src="../SalsaVerde/salsaverde.global.js"></script>
     <script name="app_test" type="text/javascript">
+        const _my_format = {
+            type: svenum.datatypes.date,
+            stamp: (value) => {
+                let _options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                return value.toLocaleDateString("it-IT", _options);
+            }
+        };
+        let _today = new Date();
+        var global;
 
-        var myapp;
-        openKiosk("myapp").reserve({
+        openKiosk("app_test").reserve({
             data: {
-                title: "Applicazione di prova",
-                subtitle: "sottotitolo dell'applicazione",
-                tasto: "Riproduci alert di sistema",
-                data: new Date(),
-                conto: 0,
-                lista: [
-                    { id: 1, name: "elemento 1" },
-                    { id: 2, name: "elemento 2" },
-                    { id: 3, name: "elemento 3" },
-                    { id: 4, name: "elemento 4" }
+                id: "txt_modello",
+                titolo: "testo di prova",
+                oggetti: [
+                    { id: 0, name: "elemento", timestamp: _my_format.stamp(_today) },
+                    { id: 3, name: "elemento", timestamp: _my_format.stamp(_today) },
+                    { id: 5, name: "elemento", timestamp: _my_format.stamp(_today) },
+                    { id: 6, name: "elemento", timestamp: _my_format.stamp(_today) },
+                    { id: 11, name: "elemento", timestamp: _my_format.stamp(_today) }
                 ],
-                semplice: ["1 pillola", "6 pillola", "5 pillola"],
-                hover: false,
-                tavolo: {
-                    zampe: 4,
-                    copertura: "tovaglia",
-                    materiale: "legno",
-                    durezza: 10,
-                    nuovo: false
+                lista: [
+                    "elemento 1",
+                    "elemento 2",
+                    "elemento 3",
+                    "elemento 4"
+                ],
+                first: true,
+                second: false,
+                count: 0,
+                data: new Date()
+            },
+            instructions: {
+                actions: {
+                    addItem() {
+                        let _temp = { id: Math.max(...this.oggetti.map(e => e.id)) + 1, name: 'test nuovo elemento' }
+                        this.oggetti.push(_temp);
+                    },
+                    removeItem() {
+                        this.oggetti.pop();
+                    }
+                },
+                increment(){
+                    this.count += 1;
                 }
             },
             demands: {
-                formatter: {
-                    type: svenum.datatypes.date,
-                    stamp: (value) => {
-                        let _options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                        return value.toLocaleDateString("it-IT", _options);
-                    }
-                }
+                formatter: _my_format
             }
-        }).globalize({ myapp });
-
+        }).globalize({ global });
+    </script>
+    <script>
         function setAlert(messaggio) {
             svglobal.claim(messaggio);
         }
@@ -134,7 +188,6 @@
             myapp.dataset.lista.pop();
             myapp.dataset.semplice.pop();
         }
-
     </script>
 </body>
 

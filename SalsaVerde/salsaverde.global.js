@@ -118,6 +118,11 @@ Object.defineProperty(String.prototype, "format", {
 String.prototype.escapeRegEx = function () {
     return this.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
+/**Slice array */
+Array.prototype.subarray = function(start, end = null) {
+    if (!end) { end = -1; } 
+    return this.slice(start, this.length + 1 - (end * -1));
+};
 
 Date.prototype.datatype = () => svenum.datatypes.date;
 String.prototype.datatype = () => svenum.datatypes.string;
@@ -131,63 +136,75 @@ Boolean.prototype.datatype = () => svenum.datatypes.boolean;
 //#region SUPPORT
 /**Execute a javascript function by name */
 function runFunctionByName(script, e, app) {
-    var _script = script.replace(/'/g, "\"").replace(svenum.regex.app, (match) => {
-        let _formatted_match = match.slice(1);
-        return `app.dataset${_formatted_match}`;
-    });
-    let _function = new Function("e", "app", _script);
-    return _function(e, app);
+    try {
+        var _script = script.replace(/'/g, "\"").replace(svenum.regex.appdata, (match) => {
+            let _formatted_match = match.slice(1);
+            return `app.dataset${_formatted_match}`;
+        });
+        let _function = new Function("e", "app", _script);
+        return _function(e, app);
+    } catch (ex) { throw ex; }
 }
-/**Get Property of object by string path */
+/**Get or set Property of object by string path */
 function propByString(obj, path, value = undefined) {
-    for (var i = 0, path = path.split('.'), len = path.length; i < len; i++) {
-        if (obj) {
-            if (value != undefined && i == len - 2) obj[path[i]] = value;
-            obj = obj[path[i]];
-        }
-    };
-    return obj;
-};
+    try {
+        for (var i = 0, path = path.split('.'), len = path.length; i < len; i++) {
+            if (obj) {
+                if (value != undefined && i == len - 2) obj[path[i]] = value;
+                obj = obj[path[i]];
+            }
+        };
+        return obj;
+    } catch (ex) {
+        throw ex;
+    }
+}
 /**
  * Function to sort alphabetically an array of objects by some specific key.
  * 
  * @param {String}; property Key of the object to sort.
  */
 function dynamicSort(property, desc) {
-    return function (a, b) {
-        let _first = property ? propByString(a, property) : a;
-        let _second = property ? propByString(b, property) : b;
+    try {
+        return function (a, b) {
+            let _first = property ? propByString(a, property) : a;
+            let _second = property ? propByString(b, property) : b;
 
-        if (isNaN(_first)) {
-            if (desc) {
-                return _second.localeCompare(_first);
+            if (isNaN(_first)) {
+                if (desc) {
+                    return _second.localeCompare(_first);
+                } else {
+                    return _first.localeCompare(_second);
+                };
             } else {
-                return _first.localeCompare(_second);
-            };
-        } else {
-            if (desc) {
-                return _second - _first;
-            } else {
-                return _first - _second;
+                if (desc) {
+                    return _second - _first;
+                } else {
+                    return _first - _second;
+                };
             };
         };
-    };
+    } catch (ex) { throw ex; }
 }
 /**Deep copy of array values copied by value and not by ref*/
 function duplicateArray(array) {
-    return JSON.parse(JSON.stringify(array));
+    try {
+        return JSON.parse(JSON.stringify(array));
+    } catch (ex) { throw ex; }
 }
 /**merge multiple array in one */
 function mergeArrays(...arrays) {
-    let _result = [];
-    for (const array of arrays) {
-        for (const item of array) {
-            if (!_result.includes(item)) {
-                _result.push(item);
+    try {
+        let _result = [];
+        for (const array of arrays) {
+            for (const item of array) {
+                if (!_result.includes(item)) {
+                    _result.push(item);
+                }
             }
         }
-    }
-    return _result;
+        return _result;
+    } catch (ex) { throw ex; }
 }
 /**get unique ID */
 function uniqueID() {
@@ -200,6 +217,14 @@ function getPathFromTag(tag, prefix = "") {
         return tag.replace("{{", "").replace("}}", "").trim();
     } catch (ex) { throw ex; }
 }
+/**Check if two objects has the same keys */
+function compareKeys(obj1, obj2) {
+    try {
+        let _a = Object.keys(obj1).sort();
+        let _b = Object.keys(obj2).sort();
+        return JSON.stringify(_a) === JSON.stringify(_b);
+    } catch (ex) { throw ex; }
+}
 
 const _string_constructor = "".constructor;
 const _array_constructor = [].constructor;
@@ -207,21 +232,34 @@ const _object_constructor = {}.constructor;
 const _xhr_constructor = new XMLHttpRequest().constructor;
 /**Return the current data type of item*/
 function getDataType(object) {
-    if (object === null || object === undefined) return svenum.datatypes.empty;
-    if (object instanceof Date) return svenum.datatypes.date;
-    if (object.constructor === _string_constructor) return svenum.datatypes.string;
-    if (object.constructor === _array_constructor) return svenum.datatypes.array;
-    if (object.constructor === _object_constructor) return svenum.datatypes.object;
-    if (object.constructor === _xhr_constructor) return svenum.datatypes.xhr;
-    if (typeof object == "boolean") return svenum.datatypes.boolean;
-    if (typeof object == "function") return svenum.datatypes.function;
-    if (!isNaN(object)) return svenum.datatypes.number;
-    return "unknown";
+    try {
+        if (object === null || object === undefined) return svenum.datatypes.empty;
+        if (object instanceof Date) return svenum.datatypes.date;
+        if (object.constructor === _string_constructor) return svenum.datatypes.string;
+        if (object.constructor === _array_constructor) return svenum.datatypes.array;
+        if (object.constructor === _object_constructor) return svenum.datatypes.object;
+        if (object.constructor === _xhr_constructor) return svenum.datatypes.xhr;
+        if (typeof object == "boolean") return svenum.datatypes.boolean;
+        if (typeof object == "function") return svenum.datatypes.function;
+        if (!isNaN(object)) return svenum.datatypes.number;
+        return "unknown";
+    } catch (ex) { throw ex; }
 };
 
-function setMouseHoverTarget(e, hover) {
-    e.target.setAttribute("data-hover", hover);
+function castDataType(value, type) {
+    if (value != null) {
+        switch (type) {
+            case svenum.datatypes.array:
+                try { value = JSON.parse(value); } catch (ex) { }
+                return getDataType(value) == svenum.datatypes.array ? value : [value];
+            case svenum.datatypes.date: return new Date(value);
+            case svenum.datatypes.object: return JSON.parse(value);
+            default: return value;
+        }
+    }
+    return value;
 }
+
 //#endregion
 
 //#region ENUMERATORS
@@ -241,23 +279,25 @@ const svenum = {
     /**List of useful regex */
     regex: {
         /**match all integer and decimal values */
-        numeric: /^(([0-9]*)|(([0-9]*)[\.\,]([0-9]*)))$/,
+        numeric: /^(([0-9]*)|(([0-9]*)[\.\,]([0-9]*)))$/g,
         /**match all textual values */
         textual: /\d/,
         /**match email format */
-        mail: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+        mail: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/g,
         /**match multiple email format */
         multiplemail:
-            /^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)+([a-zA-Z0-9\-\.]+)+([;]([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)+([a-zA-Z0-9\-\.]+))*$/,
+            /^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)+([a-zA-Z0-9\-\.]+)+([;]([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9\-]+\.)+([a-zA-Z0-9\-\.]+))*$/g,
         /**match date format */
-        date: /(^(\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1})[\/|\-|\.]+\d{4})|(^(\d{4}[\/|\-|\.]+\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1}))$/,
+        date: /(^(\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1})[\/|\-|\.]+\d{4})|(^(\d{4}[\/|\-|\.]+\d{2}|\d{1})[\/|\-|\.]+(\d{2}|\d{1}))$/g,
         dateformat:
-            /([0][1-9]|[1][0-9]|[2][0-9]|[3][0-1])[/|.|-|,|;]([0][1-9]|[1][0-2])[/|.|-|,|;](([1][9][0-9]{2}|[2][0-9]{3})|(\d{2}))/,
-        reference: /{{[\s]?[a-zA-Z0-9._]+[\s]?}}/gm,
+            /([0][1-9]|[1][0-9]|[2][0-9]|[3][0-1])[/|.|-|,|;]([0][1-9]|[1][0-2])[/|.|-|,|;](([1][9][0-9]{2}|[2][0-9]{3})|(\d{2}))/g,
+        reference: /{{[\s]?[a-zA-Z0-9._]+[\s]?}}/g,
         /**match in tag script reference */
-        brackets: /(?<=\{\{)(.*?)(?=\}\})/gm,
+        brackets: /(?<=\{\{)(.*?)(?=\}\})/g,
         /**match property path into script references */
-        app: /(?:\$\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g
+        appdata: /(?:\$\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g,
+        /**match function path into script references */
+        appfunction: /(?:\&\.[a-zA-Z_$]+[\w$]*)(?:\.[a-zA-Z_$]+[\w$]*)*/g
     },
     /**Enumerator for the file size formatter */
     filesize: {
@@ -351,7 +391,8 @@ const svenum = {
         else: 5,
         elseif: 6,
         filter: 7,
-        sort: 8
+        sort: 8,
+        bind: 9
     },
     /**list of common client errors */
     errortype: {
