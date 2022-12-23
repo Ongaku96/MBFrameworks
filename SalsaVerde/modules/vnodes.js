@@ -224,7 +224,13 @@ export class svModel extends command {
                         refreshValue(this.reference, this.attribute);
                         break;
                     case "SELECT":
-                        this.reference.value = _value;
+                        if (getDataType(_value) == svenum.datatypes.array) {
+                            for (let option of this.reference.options) {
+                                option.selected = _value.includes(option.value) || _value.includes(option.text);
+                            }
+                        } else {
+                            this.reference.value = _value;
+                        }
                         refreshValue(this.reference, this.attribute);
                         break;
                     default:
