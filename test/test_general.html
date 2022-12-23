@@ -86,7 +86,7 @@
         <section>
             <h5>INPUT multiline</h5>
             <span>Multiline message: </span>
-            <p style="white-space: pre-line;">{{message}}</p>
+            <p :class="{{return $.message.length < 10 ? 'txt-blu' : ''}}" style="white-space: pre-line;">{{message}}</p>
             <textarea sv-model="message" placeholder="inserisci un testo su più righe" rows="5"></textarea>
         </section>
         <section>

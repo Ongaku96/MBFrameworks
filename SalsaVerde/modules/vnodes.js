@@ -157,7 +157,8 @@ export class vNode {
 
     addProperties(...props) {
         for (const prop of props) {
-            if (prop && !this.properties.includes(prop)) this.properties.push(prop);
+            let _prop = prop.split(".")[0];
+            if (_prop && !this.properties.includes(_prop)) this.properties.push(_prop);
         }
     }
 }
